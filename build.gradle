@@ -7,7 +7,7 @@ plugins {
     id 'ru.vyarus.github-info' version '1.4.0'
     id 'signing'
     id "io.github.gradle-nexus.publish-plugin" version "1.1.0"
-    id "com.github.ben-manes.versions" version "0.44.0"
+    id "com.github.ben-manes.versions" version "0.43.0"
     id 'net.researchgate.release' version '3.0.2'
 }
 
@@ -15,16 +15,15 @@ def isBuildSnapshot = version.toString().endsWith("-SNAPSHOT")
 
 repositories {
     mavenCentral()
+    gradlePluginPortal()
     if (isBuildSnapshot) {
         maven { url "https://s01.oss.sonatype.org/content/repositories/snapshots/" }
     }
 }
 
 sourceCompatibility = 11
-targetCompatibility = 11
-
 group "io.kestra.plugin"
-description 'Plugin template for Kestra'
+description 'AMQP template for Kestra'
 
 tasks.withType(JavaCompile) {
     options.encoding = "UTF-8"
@@ -55,6 +54,9 @@ dependencies {
 
     // libs included in the final jar
     api group: 'com.google.code.gson', name: 'gson', version: '2.10'
+
+    // amqp
+    api group: 'com.rabbitmq', name: 'amqp-client', version: '5.16.0'
 }
 
 
@@ -110,7 +112,7 @@ jar {
     manifest {
         attributes(
                 "X-Kestra-Title": project.name,
-                "X-Kestra-Group": project.group + ".templates",
+                "X-Kestra-Group": project.group + ".amqp",
                 "X-Kestra-Description": project.description,
                 "X-Kestra-Version": project.version
         )
@@ -120,8 +122,8 @@ jar {
 pom {
     developers {
         developer {
-            id "tchiotludo"
-            name "Ludovic Dehon"
+            id "Lbo59"
+            name "Laurent Bocquet"
         }
     }
 }
