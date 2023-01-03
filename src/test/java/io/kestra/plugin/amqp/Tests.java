@@ -46,7 +46,7 @@ class TestsAMQP {
         assertThat(pushOutput.getMessagesCount(), is(2));
 
         Pull pull = Pull.builder()
-                .uri("amqp://guest:guest@localhost")
+                .uri("amqp://guest:guest@localhost:5672/")
                 .acknowledge(true)
                 .queue("kestramqp.queue")
                 .build();
@@ -61,7 +61,7 @@ class TestsAMQP {
         assertThat(Tools.getAMQPFactory("amqp://guest:guest@localhost:5672/"), notNullValue());
 
         Publish push = Publish.builder()
-                .uri("amqp://guest:guest@localhost:5672")
+                .uri("amqp://guest:guest@localhost:5672/")
                 .exchange("kestramqp.exchange")
                 .routingKey("")
                 .headers(ImmutableMap.of("testHeader", "KestraTest"))
@@ -73,7 +73,7 @@ class TestsAMQP {
         assertThat(pushOutput.getMessagesCount(), is(1));
 
         Pull pull = Pull.builder()
-                .uri("amqp://guest:guest@localhost")
+                .uri("amqp://guest:guest@localhost:5672/")
                 .acknowledge(true)
                 .queue("kestramqp.queue")
                 .build();
@@ -89,7 +89,7 @@ class TestsAMQP {
         assertThat(Tools.getAMQPFactory("amqp://guest:guest@localhost:5672/"), notNullValue());
 
         Publish push = Publish.builder()
-                .uri("amqp://guest:guest@localhost:5672")
+                .uri("amqp://guest:guest@localhost:5672/")
                 .exchange("kestramqp.exchange")
                 .routingKey("")
                 .headers(ImmutableMap.of("testHeader", "KestraTest"))
@@ -101,7 +101,7 @@ class TestsAMQP {
         assertThat(pushOutput.getMessagesCount(), is(5));
 
         Pull pull = Pull.builder()
-                .uri("amqp://guest:guest@localhost")
+                .uri("amqp://guest:guest@localhost:5672/")
                 .acknowledge(true)
                 .queue("kestramqp.queue")
                 .build();
