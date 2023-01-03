@@ -1,0 +1,15 @@
+id: trigger
+namespace: io.kestra.tests
+
+triggers:
+  - id: watch
+    type: io.kestra.plugin.amqp.Trigger
+    url: amqp://guest:guest@localhost:5672/my_vhost
+    maxRecords: 2
+    queue: amqpTrigger.queue
+
+
+tasks:
+  - id: end
+    type: io.kestra.core.tasks.debugs.Return
+    format: "{{task.id}} > {{taskrun.startDate}}"
