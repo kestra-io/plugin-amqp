@@ -30,9 +30,6 @@ class TestsAMQP {
     protected StorageInterface storageInterface;
     @Test
     void pushAsList() throws Exception {
-
-        assertThat(Tools.getAMQPFactory("amqp://guest:guest@localhost:5672/"), notNullValue());
-
         Publish push = Publish.builder()
                 .uri("amqp://guest:guest@localhost:5672")
                 .exchange("kestramqp.exchange")
@@ -57,9 +54,6 @@ class TestsAMQP {
 
     @Test
     void pushAsString() throws Exception {
-
-        assertThat(Tools.getAMQPFactory("amqp://guest:guest@localhost:5672/"), notNullValue());
-
         Publish push = Publish.builder()
                 .uri("amqp://guest:guest@localhost:5672/")
                 .exchange("kestramqp.exchange")
@@ -84,9 +78,7 @@ class TestsAMQP {
 
     @Test
     void pushAsFile() throws Exception {
-
-        URI uri =  createTestFile();
-        assertThat(Tools.getAMQPFactory("amqp://guest:guest@localhost:5672/"), notNullValue());
+        URI uri = createTestFile();
 
         Publish push = Publish.builder()
                 .uri("amqp://guest:guest@localhost:5672/")

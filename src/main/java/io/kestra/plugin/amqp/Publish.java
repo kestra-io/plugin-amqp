@@ -19,6 +19,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
+import javax.validation.constraints.NotNull;
 
 @SuperBuilder
 @ToString
@@ -29,32 +30,33 @@ import java.util.Map;
     title = "Push a message to an AMQP exchange",
     description = "Push a message to an AMQP exchange, including specified headers"
 )
-public class Publish extends Task implements RunnableTask<Publish.Output> {
-    @Schema(
-        title = "Push a message to an AMQP exchange",
-        description = "Push a message to an AMQP exchange, including specified headers"
-    )
-    @Builder.Default private String uri = "amqp://127.0.0.1:5672/";
+public class Publish extends AbstractAmqpConnection implements RunnableTask<Publish.Output> {
+    @NotNull
+    private String exchange;
 
-    @Builder.Default private String exchange = "";
+    @Builder.Default
+    private String routingKey = "";
 
-    @Builder.Default private String routingKey = "";
-
-    @Builder.Default private String expiration = null;
+    @Builder.Default
+    private String expiration = null;
 
     private Map<String, Object> headers;
 
-    @Builder.Default private String data = "";
+    @Builder.Default
+    private String data = "";
 
-    @Builder.Default private String contentType = "application/json";
+    @Builder.Default
+    private String contentType = "application/json";
+
     @PluginProperty(dynamic = true)
+    @NotNull
     private Object from;
 
     @Override
     public Publish.Output run(RunContext runContext) throws Exception {
         Logger logger = runContext.logger();
+        ConnectionFactory factory = this.connectionFactory(runContext);
 
-        ConnectionFactory factory = Tools.getAMQPFactory(getUri());
         Connection connection = factory.newConnection();
         Channel channel = connection.createChannel();
 
@@ -127,7 +129,8 @@ public class Publish extends Task implements RunnableTask<Publish.Output> {
                 getExchange(),
                 getRoutingKey(),
                 new AMQP.BasicProperties(this.contentType, "UTF-8", getHeaders(), null, null, null, null, getExpiration(), null, null, null, null, null, null),
-                message.getBytes());
+                message.getBytes()
+        );
     }
 
     @Builder

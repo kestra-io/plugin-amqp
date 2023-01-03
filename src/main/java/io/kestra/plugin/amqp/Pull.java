@@ -1,7 +1,6 @@
 package io.kestra.plugin.amqp;
 
 import com.rabbitmq.client.*;
-import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.models.tasks.Task;
 import io.kestra.core.runners.RunContext;
@@ -16,6 +15,7 @@ import org.slf4j.Logger;
 import java.io.*;
 import java.net.URI;
 import java.util.Map;
+import javax.validation.constraints.NotNull;
 
 @SuperBuilder
 @ToString
@@ -26,16 +26,9 @@ import java.util.Map;
         title = "Pull a message from an AMQP queue",
         description = "Pull a message from an AMQP queue, including specified headers"
 )
-public class Pull extends Task implements RunnableTask<Pull.Output> {
-    @Schema(
-            title = "Pull a message from an AMQP queue",
-            description = "Pull a message from an AMQP queue, including specified headers"
-    )
-    @Builder.Default
-    private String uri = "amqp://127.0.0.1:5672/";
-
-    @Builder.Default
-    private String queue = "";
+public class Pull extends AbstractAmqpConnection implements RunnableTask<Pull.Output> {
+    @NotNull
+    private String queue;
 
     @Schema(
             title = "Acknowledge message(s)",
@@ -50,18 +43,19 @@ public class Pull extends Task implements RunnableTask<Pull.Output> {
     @Override
     public Pull.Output run(RunContext runContext) throws Exception {
         Logger logger = runContext.logger();
+        ConnectionFactory factory = this.connectionFactory(runContext);
 
         File tempFile = runContext.tempFile(".ion").toFile();
         BufferedOutputStream outputFile = new BufferedOutputStream(new FileOutputStream(tempFile));
-        ConnectionFactory factory = Tools.getAMQPFactory(getUri());
 
-        Connection connection = factory.newConnection();
-        Channel channel = connection.createChannel();
+        try (Connection connection = factory.newConnection()) {
+            Channel channel = connection.createChannel();
 
-        logger.info("AMQPull pulling from " + getUri() + " " + getQueue());
+            logger.info("AMQPull pulling from " + getUri() + " " + getQueue());
 
-        Flowable<Object> flowable = Flowable.create(emitter -> {
-                    channel.basicConsume(
+            Flowable<Object> flowable = Flowable.create(
+                    emitter -> {
+                        channel.basicConsume(
                             this.queue,
                             this.acknowledge,
                             this.consumerTag,
@@ -70,24 +64,28 @@ public class Pull extends Task implements RunnableTask<Pull.Output> {
                             },
                             (consumerTag) -> {
                                 emitter.onComplete();
-                            });
-                },
-                BackpressureStrategy.BUFFER
-        ).map(o -> {
-                    logger.info(String.valueOf(o));
-                    return o;
-                }
-        ).doOnNext(row -> {
-            FileSerde.write(outputFile, String.valueOf(row));
-        });
-        Long count = flowable.count().blockingGet();
-        logger.info("finished");
-        outputFile.flush();
+                            }
+                        );
+                    },
+                    BackpressureStrategy.BUFFER
+                )
+                .map(o -> {
+                        logger.info(String.valueOf(o));
+                        return o;
+                    }
+                )
+                .doOnNext(row -> {
+                    FileSerde.write(outputFile, String.valueOf(row));
+                });
+            Long count = flowable.count().blockingGet();
+            logger.info("finished");
+            outputFile.flush();
 
-        return Output.builder()
+            return Output.builder()
                 .uri(runContext.putTempFile(tempFile))
                 .count(count.intValue())
                 .build();
+        }
     }
 
     @Builder
