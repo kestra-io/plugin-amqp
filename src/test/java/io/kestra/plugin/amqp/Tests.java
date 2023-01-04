@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.*;
 import java.net.URI;
+import java.time.Duration;
 import java.util.Arrays;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -22,7 +23,7 @@ import static org.hamcrest.Matchers.*;
  * parameters to your task and test the returning behaviour easily.
  */
 @MicronautTest
-class TestsAMQP {
+class AmqpTest {
     @Inject
     private RunContextFactory runContextFactory;
 
@@ -46,10 +47,37 @@ class TestsAMQP {
                 .uri("amqp://guest:guest@localhost:5672/")
                 .acknowledge(true)
                 .queue("kestramqp.queue")
+                .maxDuration(Duration.ofSeconds(3))
                 .build();
 
         Pull.Output pullOutput = pull.run(runContextFactory.of());
+        assertThat(pullOutput.getCount(),is(2));
+    }
+    @Test
+    void pushAsFileMaxRecord() throws Exception {
+        URI uri = createTestFile(50000);
 
+        Publish push = Publish.builder()
+                .uri("amqp://guest:guest@localhost:5672/")
+                .exchange("kestramqp.exchange")
+                .routingKey("")
+                .headers(ImmutableMap.of("testHeader", "KestraTest"))
+                .from(uri.toString())
+                .build();
+
+        Publish.Output pushOutput = push.run(runContextFactory.of());
+
+        assertThat(pushOutput.getMessagesCount(), is(50000));
+
+        Pull pull = Pull.builder()
+                .uri("amqp://guest:guest@localhost:5672/")
+                .acknowledge(true)
+                .queue("kestramqp.queue")
+                .maxRecords(1000)
+                .build();
+
+        Pull.Output pullOutput = pull.run(runContextFactory.of());
+        assertThat(pullOutput.getCount(),greaterThan(1000));
     }
 
     @Test
@@ -70,15 +98,17 @@ class TestsAMQP {
                 .uri("amqp://guest:guest@localhost:5672/")
                 .acknowledge(true)
                 .queue("kestramqp.queue")
+                .maxDuration(Duration.ofSeconds(3))
                 .build();
 
         Pull.Output pullOutput = pull.run(runContextFactory.of());
+        assertThat(pullOutput.getCount(),is(1));
 
     }
 
     @Test
     void pushAsFile() throws Exception {
-        URI uri = createTestFile();
+        URI uri = createTestFile(5);
 
         Publish push = Publish.builder()
                 .uri("amqp://guest:guest@localhost:5672/")
@@ -96,18 +126,48 @@ class TestsAMQP {
                 .uri("amqp://guest:guest@localhost:5672/")
                 .acknowledge(true)
                 .queue("kestramqp.queue")
+                .maxDuration(Duration.ofSeconds(3))
                 .build();
 
         Pull.Output pullOutput = pull.run(runContextFactory.of());
+        assertThat(pullOutput.getCount(),is(5));
 
     }
 
-    URI createTestFile() throws Exception {
+    @Test
+    void createAndBindTest() throws Exception{
+        CreateExchange createExchange = CreateExchange.builder()
+                .uri("amqp://guest:guest@localhost:5672/")
+                .name("amqptests.exchange")
+                .build();
+        CreateQueue createQueue = CreateQueue.builder()
+                .uri("amqp://guest:guest@localhost:5672/")
+                .name("amqptests.queue")
+                .build();
+        QueueBind queueBind = QueueBind.builder()
+                .uri("amqp://guest:guest@localhost:5672/")
+                .exchange("amqptests.exchange")
+                .queue("amqptests.queue")
+                .build();
+
+
+        CreateExchange.Output createExchangeOutput = createExchange.run(runContextFactory.of());
+        CreateQueue.Output createQueueOutput = createQueue.run(runContextFactory.of());
+        QueueBind.Output queueBindOutput = queueBind.run(runContextFactory.of());
+
+        assertThat(createExchangeOutput.getExchange(), is("amqptests.exchange"));
+        assertThat(createQueueOutput.getQueue(), is("amqptests.queue"));
+        assertThat(queueBindOutput.getExchange(), is("amqptests.exchange"));
+        assertThat(queueBindOutput.getQueue(), is("amqptests.queue"));
+    }
+
+
+    URI createTestFile(Integer length) throws Exception {
         RunContext runContext = runContextFactory.of(ImmutableMap.of());
 
         File tempFile = runContext.tempFile(".ion").toFile();
         OutputStream output = new FileOutputStream(tempFile);
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < length; i++) {
             FileSerde.write(output, i);
         }
         return storageInterface.put(URI.create("/" + IdUtils.create() + ".ion"), new FileInputStream(tempFile));

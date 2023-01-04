@@ -5,8 +5,6 @@ import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.serializers.FileSerde;
-import io.reactivex.BackpressureStrategy;
-import io.reactivex.Flowable;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -14,8 +12,15 @@ import org.slf4j.Logger;
 
 import java.io.*;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.ZonedDateTime;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import javax.validation.constraints.NotNull;
+
+import static io.kestra.core.utils.Rethrow.throwRunnable;
 
 @SuperBuilder
 @ToString
@@ -41,52 +46,72 @@ public class Pull extends AbstractAmqpConnection implements RunnableTask<Pull.Ou
     @Builder.Default
     private String consumerTag = "Kestra";
 
+    private Integer maxRecords;
+    private Duration maxDuration;
+
     @Override
     public Pull.Output run(RunContext runContext) throws Exception {
         Logger logger = runContext.logger();
         ConnectionFactory factory = this.connectionFactory(runContext);
 
-        File tempFile = runContext.tempFile(".ion").toFile();
-        BufferedOutputStream outputFile = new BufferedOutputStream(new FileOutputStream(tempFile));
+        Map<String, Integer> count = new HashMap<>();
+        AtomicInteger total = new AtomicInteger();
+        ZonedDateTime started = ZonedDateTime.now();
 
-        try (Connection connection = factory.newConnection()) {
+        File tempFile = runContext.tempFile(".ion").toFile();
+        Thread thread = null;
+
+        if (this.maxDuration == null && this.maxRecords == null) {
+            throw new Exception("maxDuration or maxRecords must be set to avoid infinite loop");
+        }
+
+        try (BufferedOutputStream outputFile = new BufferedOutputStream(new FileOutputStream(tempFile));
+             Connection connection = factory.newConnection()) {
             Channel channel = connection.createChannel();
+
 
             logger.info("AMQPull pulling from " + getUri() + " " + getQueue());
 
-            Flowable<Object> flowable = Flowable.create(
-                    emitter -> {
-                        channel.basicConsume(
-                            this.queue,
-                            this.acknowledge,
-                            this.consumerTag,
-                            (consumerTag, message) -> {
-                                emitter.onNext(new String(message.getBody()));
-                            },
-                            (consumerTag) -> {
-                                emitter.onComplete();
-                            }
-                        );
-                    },
-                    BackpressureStrategy.BUFFER
-                )
-                .map(o -> {
-                        logger.info(String.valueOf(o));
-                        return o;
-                    }
-                )
-                .doOnNext(row -> {
-                    FileSerde.write(outputFile, String.valueOf(row));
-                });
-            Long count = flowable.count().blockingGet();
-            logger.info("finished");
-            outputFile.flush();
+            thread = new Thread(throwRunnable(() -> {
+                channel.basicConsume(
+                        this.queue,
+                        this.acknowledge,
+                        this.consumerTag,
+                        (consumerTag, message) -> {
+                            FileSerde.write(outputFile, new String(message.getBody(), StandardCharsets.UTF_8));
+                            total.getAndIncrement();
+                            count.compute(this.queue, (s, integer) -> integer == null ? 1 : integer + 1);
+                        },
+                        (consumerTag) -> {
+                        }
+                );
+            }));
+            thread.setDaemon(true);
+            thread.setName("amqp-consume");
+            thread.start();
 
-            return Output.builder()
-                .uri(runContext.putTempFile(tempFile))
-                .count(count.intValue())
-                .build();
+            while (!this.ended(total, started)) {
+                Thread.sleep(100);
+            }
+
+            outputFile.flush();
         }
+        return Output.builder()
+                .uri(runContext.putTempFile(tempFile))
+                .count(total.get())
+                .build();
+    }
+
+    @SuppressWarnings("RedundantIfStatement")
+    private boolean ended(AtomicInteger count, ZonedDateTime start) {
+        if (this.maxRecords != null && count.get() >= this.maxRecords) {
+            return true;
+        }
+        if (this.maxDuration != null && ZonedDateTime.now().toEpochSecond() > start.plus(this.maxDuration).toEpochSecond()) {
+            return true;
+        }
+
+        return false;
     }
 
     @Builder
@@ -97,7 +122,6 @@ public class Pull extends AbstractAmqpConnection implements RunnableTask<Pull.Ou
                 description = "Number of row consumed"
         )
         private final Integer count;
-        private final Map<String, Object> headers;
         private final URI uri;
 
     }

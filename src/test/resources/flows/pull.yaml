@@ -1,9 +1,0 @@
-id: pull
-namespace: io.kestra.amqp
-
-tasks:
-- id: flow-id
-  type: io.kestra.plugin.amqp.Pull
-  uri: "amqp://guest:guest@localhost:5672"
-  queue: "kestramqp.queue"
-  consumerTag : "consumerTag"
