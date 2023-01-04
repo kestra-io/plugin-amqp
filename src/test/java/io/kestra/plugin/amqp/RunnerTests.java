@@ -42,12 +42,26 @@ class RunnerTests {
 
     @Test
     void flow() throws TimeoutException {
-        Execution pushexec = runnerUtils.runOne("io.kestra.amqp", "amqpush");
+        Execution pushexec = runnerUtils.runOne("io.kestra.amqp", "publish");
 
         assertThat(pushexec.getTaskRunList(), hasSize(1));
 
-        Execution pullexec = runnerUtils.runOne("io.kestra.amqp", "amqpull");
+        Execution pullexec = runnerUtils.runOne("io.kestra.amqp", "pull");
 
         assertThat(pullexec.getTaskRunList(), hasSize(1));
+    }
+
+    @Test
+    void createTests() throws TimeoutException {
+        Execution create = runnerUtils.runOne("io.kestra.amqp", "create");
+
+        assertThat(create.getTaskRunList(), hasSize(3));
+    }
+
+    @Test
+    void completeFlowTests() throws TimeoutException {
+        Execution create = runnerUtils.runOne("io.kestra.amqp", "complete-flow");
+
+        assertThat(create.getTaskRunList(), hasSize(3));
     }
 }

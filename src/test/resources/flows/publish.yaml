@@ -1,9 +1,9 @@
-id: amqpush
+id: publish
 namespace: io.kestra.amqp
 
 tasks:
   - id: flow-id
-    type: io.kestra.plugin.amqp.AMQPush
+    type: io.kestra.plugin.amqp.Publish
     uri: "amqp://guest:guest@localhost:5672"
     exchange: "kestramqp.exchange"
     routingKey: ""

@@ -1,8 +1,8 @@
 package io.kestra.plugin.amqp;
 
 import com.rabbitmq.client.*;
+import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.tasks.RunnableTask;
-import io.kestra.core.models.tasks.Task;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.serializers.FileSerde;
 import io.reactivex.BackpressureStrategy;
@@ -28,6 +28,7 @@ import javax.validation.constraints.NotNull;
 )
 public class Pull extends AbstractAmqpConnection implements RunnableTask<Pull.Output> {
     @NotNull
+    @PluginProperty(dynamic = true)
     private String queue;
 
     @Schema(

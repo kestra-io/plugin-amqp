@@ -1,0 +1,31 @@
+id: complete-flow
+namespace: io.kestra.amqp
+
+tasks:
+  - id: createExchange
+    type: io.kestra.plugin.amqp.CreateExchange
+    uri: "amqp://guest:guest@localhost:5672"
+    name: "tests.exchange"
+  - id: createQueue
+    type: io.kestra.plugin.amqp.CreateQueue
+    uri: "amqp://guest:guest@localhost:5672"
+    name: "tests.queue"
+  - id: bindQueue
+    type: io.kestra.plugin.amqp.QueueBind
+    uri: "amqp://guest:guest@localhost:5672"
+    queue: "tests.queue"
+    exchange : "tests.exchange"
+  - id: publish
+    type: io.kestra.plugin.amqp.Publish
+    uri: "amqp://guest:guest@localhost:5672"
+    exchange: "tests.exchange"
+    routingKey: ""
+    headers:
+      testHeader: "KestraTest"
+    from:
+      - "{\"test\":\"value-1\"}"
+      - "{\"test\":\"value-2\"}"
+  - id: pull
+    type: io.kestra.plugin.amqp.Pull
+    uri: "amqp://guest:guest@localhost:5672"
+    queue: "tests.queue"

@@ -4,7 +4,6 @@ import com.rabbitmq.client.*;
 import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.executions.metrics.Counter;
 import io.kestra.core.models.tasks.RunnableTask;
-import io.kestra.core.models.tasks.Task;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.serializers.FileSerde;
 import io.reactivex.BackpressureStrategy;
@@ -32,9 +31,11 @@ import javax.validation.constraints.NotNull;
 )
 public class Publish extends AbstractAmqpConnection implements RunnableTask<Publish.Output> {
     @NotNull
+    @PluginProperty(dynamic = true)
     private String exchange;
 
     @Builder.Default
+    @PluginProperty(dynamic = true)
     private String routingKey = "";
 
     @Builder.Default
