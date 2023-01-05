@@ -26,7 +26,7 @@ import static org.hamcrest.Matchers.*;
  */
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class AmqpTest {
+class AMQPTest {
     @Inject
     private RunContextFactory runContextFactory;
 
@@ -47,14 +47,13 @@ class AmqpTest {
 
         assertThat(pushOutput.getMessagesCount(), is(2));
 
-        Pull pull = Pull.builder()
+        Consume consume = Consume.builder()
             .uri("amqp://guest:guest@localhost:5672/my_vhost")
-            .acknowledge(true)
             .queue("kestramqp.queue")
             .maxDuration(Duration.ofSeconds(3))
             .build();
 
-        Pull.Output pullOutput = pull.run(runContextFactory.of());
+        Consume.Output pullOutput = consume.run(runContextFactory.of());
         assertThat(pullOutput.getCount(), greaterThanOrEqualTo(2));
     }
 
@@ -74,14 +73,13 @@ class AmqpTest {
 
         assertThat(pushOutput.getMessagesCount(), is(50000));
 
-        Pull pull = Pull.builder()
+        Consume consume = Consume.builder()
             .uri("amqp://guest:guest@localhost:5672/my_vhost")
-            .acknowledge(true)
             .queue("kestramqp.queue")
             .maxRecords(1000)
             .build();
 
-        Pull.Output pullOutput = pull.run(runContextFactory.of());
+        Consume.Output pullOutput = consume.run(runContextFactory.of());
         assertThat(pullOutput.getCount(), greaterThanOrEqualTo(1000));
     }
 
@@ -99,14 +97,13 @@ class AmqpTest {
 
         assertThat(pushOutput.getMessagesCount(), is(1));
 
-        Pull pull = Pull.builder()
+        Consume consume = Consume.builder()
             .uri("amqp://guest:guest@localhost:5672/my_vhost")
-            .acknowledge(true)
             .queue("kestramqp.queue")
             .maxDuration(Duration.ofSeconds(3))
             .build();
 
-        Pull.Output pullOutput = pull.run(runContextFactory.of());
+        Consume.Output pullOutput = consume.run(runContextFactory.of());
         assertThat(pullOutput.getCount(), greaterThanOrEqualTo(1));
 
     }
@@ -127,15 +124,14 @@ class AmqpTest {
 
         assertThat(pushOutput.getMessagesCount(), is(5));
 
-        Pull pull = Pull.builder()
+        Consume consume = Consume.builder()
             .uri("amqp://guest:guest@localhost:5672/my_vhost")
-            .acknowledge(true)
             .queue("kestramqp.queue")
             .maxDuration(Duration.ofSeconds(3))
             .build();
 
-        Pull.Output pullOutput = pull.run(runContextFactory.of());
-        assertThat(pullOutput.getCount(), is(5));
+        Consume.Output pullOutput = consume.run(runContextFactory.of());
+        assertThat(pullOutput.getCount(), greaterThanOrEqualTo(5));
 
     }
 

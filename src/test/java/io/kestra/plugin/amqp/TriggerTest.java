@@ -15,7 +15,7 @@ import io.kestra.core.utils.TestsUtils;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import jakarta.inject.Inject;
-import jdk.jfr.Name;
+import jakarta.inject.Named;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -46,7 +46,7 @@ class TriggerTest {
     private FlowListeners flowListenersService;
 
     @Inject
-    @Name(QueueFactoryInterface.EXECUTION_NAMED)
+    @Named(QueueFactoryInterface.EXECUTION_NAMED)
     private QueueInterface<Execution> executionQueue;
 
     @Inject

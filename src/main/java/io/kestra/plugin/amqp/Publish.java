@@ -1,11 +1,13 @@
 package io.kestra.plugin.amqp;
 
 import com.rabbitmq.client.*;
+import io.kestra.core.exceptions.IllegalVariableEvaluationException;
 import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.executions.metrics.Counter;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.serializers.FileSerde;
+import io.kestra.plugin.amqp.services.SerdeType;
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -44,11 +46,10 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
     )
     private String routingKey = "";
 
-    @Builder.Default
     @Schema(
         title = "The name of the queue"
     )
-    private String expiration = null;
+    private String expiration;
 
     @Schema(
         title = "The properties to add in the headers"
@@ -74,63 +75,60 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
     )
     private Object from;
 
+    @Builder.Default
+    private SerdeType serdeType = SerdeType.STRING;
+
     @Override
     public Publish.Output run(RunContext runContext) throws Exception {
-        Logger logger = runContext.logger();
         ConnectionFactory factory = this.connectionFactory(runContext);
 
-        Connection connection = factory.newConnection();
-        Channel channel = connection.createChannel();
+        try (Connection connection = factory.newConnection()) {
+            Channel channel = connection.createChannel();
 
-        logger.debug("AMQP publishing to " + getUri() + " " + getExchange());
+            Integer count = 1;
+            Flowable<Object> flowable;
+            Flowable<Integer> resultFlowable;
 
-        Integer count = 1;
-        Flowable<Object> flowable;
-        Flowable<Integer> resultFlowable;
+            if (this.from instanceof String || this.from instanceof List) {
+                if (this.from instanceof String) {
+                    if (isValidURI((String) this.from)) {
+                        URI from = new URI(runContext.render((String) this.from));
+                        try (BufferedReader inputStream = new BufferedReader(new InputStreamReader(runContext.uriToInputStream(from)))) {
+                            flowable = Flowable.create(FileSerde.reader(inputStream), BackpressureStrategy.BUFFER);
+                            resultFlowable = this.buildFlowable(flowable, channel, runContext);
 
-        if (this.from instanceof String || this.from instanceof List) {
-            if (this.from instanceof String) {
-                if (isValidURI((String) this.from)) {
-                    URI from = new URI(runContext.render((String) this.from));
-                    try (BufferedReader inputStream = new BufferedReader(new InputStreamReader(runContext.uriToInputStream(from)))) {
-                        flowable = Flowable.create(FileSerde.reader(inputStream), BackpressureStrategy.BUFFER);
-                        resultFlowable = this.buildFlowable(flowable, channel);
-
-                        count = resultFlowable
-                            .reduce(Integer::sum)
-                            .blockingGet();
+                            count = resultFlowable
+                                .reduce(Integer::sum)
+                                .blockingGet();
+                        }
+                    } else {
+                        publish(channel, serdeType.serialize(this.from), runContext);
                     }
                 } else {
-                    String message = (String) this.from;
-                    publish(channel, message);
+                    flowable = Flowable.fromArray(((List<Object>) this.from).toArray());
+                    resultFlowable = this.buildFlowable(flowable, channel, runContext);
+
+                    count = resultFlowable
+                        .reduce(Integer::sum)
+                        .blockingGet();
                 }
-            } else {
-                flowable = Flowable.fromArray(((List<Object>) this.from).toArray());
-                resultFlowable = this.buildFlowable(flowable, channel);
-
-                count = resultFlowable
-                    .reduce(Integer::sum)
-                    .blockingGet();
+                channel.close();
             }
+
+            // metrics
+            runContext.metric(Counter.of("records", count));
+
+            return Output.builder()
+                .messagesCount(count)
+                .build();
         }
-
-        // metrics
-        runContext.metric(Counter.of("records", count));
-
-        channel.close();
-        connection.close();
-
-        return Output.builder()
-            .messagesCount(count)
-            .build();
     }
 
 
-    private Flowable<Integer> buildFlowable(Flowable<Object> flowable, Channel channel) {
+    private Flowable<Integer> buildFlowable(Flowable<Object> flowable, Channel channel, RunContext runContext) {
         return flowable
             .map(row -> {
-                String message = String.valueOf(row);
-                publish(channel, message);
+                publish(channel, serdeType.serialize(row), runContext);
                 return 1;
             });
     }
@@ -144,19 +142,18 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
         }
     }
 
-    private void publish(Channel channel, String message) throws IOException {
+    private void publish(Channel channel, byte[] message, RunContext runContext) throws IOException, IllegalVariableEvaluationException {
         channel.basicPublish(
-            getExchange(),
-            getRoutingKey(),
-            new AMQP.BasicProperties(this.contentType, "UTF-8", getHeaders(), this.deliveryMode, null, null, null, getExpiration(), null, null, null, null, null, null),
-            message.getBytes()
+            runContext.render(this.exchange),
+            runContext.render(this.routingKey),
+            new AMQP.BasicProperties(this.contentType, "UTF-8", this.headers, this.deliveryMode, null, null, null, this.expiration, null, null, null, null, null, null),
+            message
         );
     }
 
     @Builder
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
-
         @io.swagger.v3.oas.annotations.media.Schema(
             title = "Number of message published"
         )

@@ -61,10 +61,11 @@ public class CreateQueue extends AbstractAmqpConnection implements RunnableTask<
         try (Connection connection = factory.newConnection()) {
             Channel channel = connection.createChannel();
 
-            channel.queueDeclare(name, durability, exclusive, autoDelete, args);
+            channel.queueDeclare(runContext.render(name), durability, exclusive, autoDelete, args);
+            channel.close();
         }
 
-        return Output.builder().queue(name).build();
+        return Output.builder().queue(runContext.render(name)).build();
     }
 
     @Builder

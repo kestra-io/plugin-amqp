@@ -56,9 +56,10 @@ public class QueueBind extends AbstractAmqpConnection implements RunnableTask<Qu
         try (Connection connection = factory.newConnection()) {
             Channel channel = connection.createChannel();
             channel.queueBind(runContext.render(queue), runContext.render(exchange), routingKey, args);
+            channel.close();
         }
 
-        return Output.builder().queue(queue).exchange(exchange).build();
+        return Output.builder().queue(runContext.render(queue)).exchange(runContext.render(exchange)).build();
     }
 
     @Builder

@@ -4,7 +4,6 @@ import com.rabbitmq.client.*;
 import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
-import io.kestra.plugin.amqp.services.ExchangeType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -34,7 +33,7 @@ public class CreateExchange extends AbstractAmqpConnection implements RunnableTa
     @Schema(
         title = "The exchange type"
     )
-    private ExchangeType exchangeType = ExchangeType.DIRECT;
+    private BuiltinExchangeType exchangeType = BuiltinExchangeType.DIRECT;
 
     @Builder.Default
     @Schema(
@@ -66,10 +65,11 @@ public class CreateExchange extends AbstractAmqpConnection implements RunnableTa
         try (Connection connection = factory.newConnection()) {
             Channel channel = connection.createChannel();
 
-            channel.exchangeDeclare(name, exchangeType.castToBuiltinExchangeType(), durability, autoDelete, internal, args);
+            channel.exchangeDeclare(runContext.render(name), exchangeType, durability, autoDelete, internal, args);
+            channel.close();
         }
 
-        return Output.builder().exchange(name).build();
+        return Output.builder().exchange(runContext.render(name)).build();
     }
 
     @Builder

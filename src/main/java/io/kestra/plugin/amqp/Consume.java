@@ -1,25 +1,21 @@
 package io.kestra.plugin.amqp;
 
 import com.rabbitmq.client.*;
-import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.executions.metrics.Counter;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.serializers.FileSerde;
+import io.kestra.plugin.amqp.services.Message;
+import io.kestra.plugin.amqp.services.SerdeType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
-import org.slf4j.Logger;
 
 import java.io.*;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.ZonedDateTime;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import javax.validation.constraints.NotNull;
 
 import static io.kestra.core.utils.Rethrow.throwRunnable;
 
@@ -29,48 +25,27 @@ import static io.kestra.core.utils.Rethrow.throwRunnable;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Pull messages from an AMQP queue.",
-    description = "Pull messages from an AMQP queue, required a maxDuration or a maxRecords."
+    title = "Consume messages from an AMQP queue.",
+    description = "Required a maxDuration or a maxRecords."
 )
-public class Pull extends AbstractAmqpConnection implements RunnableTask<Pull.Output> {
-    @NotNull
-    @PluginProperty(dynamic = true)
-    @Schema(
-        title = "The queue to pull messages from"
-    )
+public class Consume extends AbstractAmqpConnection implements RunnableTask<Consume.Output>, ConsumeInterface {
+
     private String queue;
 
-    @Schema(
-        title = "Acknowledge message(s)",
-        description = "If the message should be acknowledge when consumed."
-    )
     @Builder.Default
-    private boolean acknowledge = true;
-
-    @Builder.Default
-    @Schema(
-        title = "A client-generated consumer tag to establish context."
-    )
     private String consumerTag = "Kestra";
 
-    @Schema(
-        title = "The max number of rows to fetch before stopping.",
-        description = "It's not an hard limit and is evaluated every second."
-    )
     private Integer maxRecords;
 
-    @Schema(
-        title = "The max duration waiting for new rows.",
-        description = "It's not an hard limit and is evaluated every second."
-    )
     private Duration maxDuration;
 
+    @Builder.Default
+    private SerdeType serdeType = SerdeType.STRING;
+
     @Override
-    public Pull.Output run(RunContext runContext) throws Exception {
-        Logger logger = runContext.logger();
+    public Consume.Output run(RunContext runContext) throws Exception {
         ConnectionFactory factory = this.connectionFactory(runContext);
 
-        Map<String, Integer> count = new HashMap<>();
         AtomicInteger total = new AtomicInteger();
         ZonedDateTime started = ZonedDateTime.now();
 
@@ -85,18 +60,15 @@ public class Pull extends AbstractAmqpConnection implements RunnableTask<Pull.Ou
              Connection connection = factory.newConnection()) {
             Channel channel = connection.createChannel();
 
-
-            logger.info("AMQPull pulling from " + getUri() + " " + getQueue());
-
             thread = new Thread(throwRunnable(() -> {
                 channel.basicConsume(
-                    this.queue,
-                    this.acknowledge,
+                    runContext.render(this.queue),
+                    false,
                     this.consumerTag,
                     (consumerTag, message) -> {
-                        FileSerde.write(outputFile, new String(message.getBody(), StandardCharsets.UTF_8));
+                        Message msg = new Message(message.getBody(), serdeType, message.getProperties());
+                        FileSerde.write(outputFile, msg);
                         total.getAndIncrement();
-                        count.compute(this.queue, (s, integer) -> integer == null ? 1 : integer + 1);
                     },
                     (consumerTag) -> {
                     }
@@ -109,8 +81,14 @@ public class Pull extends AbstractAmqpConnection implements RunnableTask<Pull.Ou
             while (!this.ended(total, started)) {
                 Thread.sleep(100);
             }
+            channel.basicCancel(this.consumerTag);
+            channel.close();
+            while(channel.isOpen()){
+                wait(100);
+            }
+            thread.join();
 
-            count.forEach((s, integer) -> runContext.metric(Counter.of("records", integer, "topic", s)));
+            runContext.metric(Counter.of("records", total.get(), "queue", runContext.render(this.queue)));
             outputFile.flush();
         }
         return Output.builder()
