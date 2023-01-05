@@ -7,4 +7,4 @@ services:
       - 5672:5672
       - 15672:15672
     environment:
-      RABBITMQ_DEFAULT_VHOST: my_vhost
+      RABBITMQ_DEFAULT_VHOST: /my_vhost
