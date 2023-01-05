@@ -59,10 +59,10 @@ class TriggerTest {
         CountDownLatch queueCount = new CountDownLatch(1);
 
         try (AbstractScheduler scheduler = new DefaultScheduler(
-                this.applicationContext,
-                this.flowListenersService,
-                this.executionState,
-                this.triggerState
+            this.applicationContext,
+            this.flowListenersService,
+            this.executionState,
+            this.triggerState
         )) {
             AtomicReference<Execution> last = new AtomicReference<>();
 
@@ -73,14 +73,14 @@ class TriggerTest {
                 assertThat(execution.getFlowId(), is("trigger"));
             });
             Publish task = Publish.builder()
-                    .id(TriggerTest.class.getSimpleName())
-                    .type(Publish.class.getName())
-                    .uri("amqp://guest:guest@localhost:5672/my_vhost")
-                    .exchange("amqpTrigger.exchange")
-                    .routingKey("")
-                    .headers(ImmutableMap.of("testHeader", "KestraTest"))
-                    .from(Arrays.asList(new String[]{"value-1", "value-2"}))
-                    .build();
+                .id(TriggerTest.class.getSimpleName())
+                .type(Publish.class.getName())
+                .uri("amqp://guest:guest@localhost:5672/my_vhost")
+                .exchange("amqpTrigger.exchange")
+                .routingKey("")
+                .headers(ImmutableMap.of("testHeader", "KestraTest"))
+                .from(Arrays.asList(new String[]{"value-1", "value-2"}))
+                .build();
 
             scheduler.run();
 
@@ -100,18 +100,18 @@ class TriggerTest {
     void setUp() throws Exception {
 
         CreateExchange createExchange = CreateExchange.builder()
-                .uri("amqp://guest:guest@localhost:5672/my_vhost")
-                .name("amqpTrigger.exchange")
-                .build();
+            .uri("amqp://guest:guest@localhost:5672/my_vhost")
+            .name("amqpTrigger.exchange")
+            .build();
         CreateQueue createQueue = CreateQueue.builder()
-                .uri("amqp://guest:guest@localhost:5672/my_vhost")
-                .name("amqpTrigger.queue")
-                .build();
+            .uri("amqp://guest:guest@localhost:5672/my_vhost")
+            .name("amqpTrigger.queue")
+            .build();
         QueueBind queueBind = QueueBind.builder()
-                .uri("amqp://guest:guest@localhost:5672/my_vhost")
-                .exchange("amqpTrigger.exchange")
-                .queue("amqpTrigger.queue")
-                .build();
+            .uri("amqp://guest:guest@localhost:5672/my_vhost")
+            .exchange("amqpTrigger.exchange")
+            .queue("amqpTrigger.queue")
+            .build();
 
         createExchange.run(runContextFactory.of());
         createQueue.run(runContextFactory.of());

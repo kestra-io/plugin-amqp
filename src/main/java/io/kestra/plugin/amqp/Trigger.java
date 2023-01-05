@@ -26,11 +26,11 @@ import java.util.Optional;
 @Getter
 @NoArgsConstructor
 @Schema(
-        title = "Wait for message in AMQP queue"
+    title = "Wait for message in AMQP queue"
 )
 public class Trigger extends AbstractTrigger implements PollingTriggerInterface, TriggerOutput<Pull.Output> {
     @Schema(
-            title = "The connection string"
+        title = "The connection string"
     )
     @NotNull
     private String uri;
@@ -39,47 +39,48 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
     @NotNull
     @PluginProperty(dynamic = true)
     @Schema(
-            title = "The queue to watch"
+        title = "The queue to watch"
     )
     private String queue;
 
     @Schema(
-            title = "Acknowledge message(s)",
-            description = "If the message should be acknowledge when consumed"
+        title = "Acknowledge message(s)",
+        description = "If the message should be acknowledge when consumed"
     )
     @Builder.Default
     private boolean acknowledge = true;
 
     @Builder.Default
     @Schema(
-            title = "A client-generated consumer tag to establish context."
+        title = "A client-generated consumer tag to establish context."
     )
     private String consumerTag = "Kestra";
 
     @Schema(
-            title = "The max number of rows to fetch before stopping.",
-            description = "It's not an hard limit and is evaluated every second."
+        title = "The max number of rows to fetch before stopping.",
+        description = "It's not an hard limit and is evaluated every second."
     )
     private Integer maxRecords;
 
     @Schema(
-            title = "The max duration waiting for new rows.",
-            description = "It's not an hard limit and is evaluated every second."
+        title = "The max duration waiting for new rows.",
+        description = "It's not an hard limit and is evaluated every second."
     )
     private Duration maxDuration;
+
     @Override
     public Optional<Execution> evaluate(ConditionContext conditionContext, TriggerContext context) throws Exception {
         RunContext runContext = conditionContext.getRunContext();
         Logger logger = runContext.logger();
 
         Pull task = Pull.builder()
-                .uri(this.uri)
-                .queue(this.queue)
-                .acknowledge(this.acknowledge)
-                .consumerTag(this.consumerTag)
-                .maxDuration(this.maxDuration)
-                .maxRecords(this.maxRecords)
-                .build();
+            .uri(this.uri)
+            .queue(this.queue)
+            .acknowledge(this.acknowledge)
+            .consumerTag(this.consumerTag)
+            .maxDuration(this.maxDuration)
+            .maxRecords(this.maxRecords)
+            .build();
 
         Pull.Output run = task.run(runContext);
 
@@ -94,18 +95,18 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
         String executionId = IdUtils.create();
 
         ExecutionTrigger executionTrigger = ExecutionTrigger.of(
-                this,
-                run
+            this,
+            run
         );
 
         Execution execution = Execution.builder()
-                .id(executionId)
-                .namespace(context.getNamespace())
-                .flowId(context.getFlowId())
-                .flowRevision(context.getFlowRevision())
-                .state(new State())
-                .trigger(executionTrigger)
-                .build();
+            .id(executionId)
+            .namespace(context.getNamespace())
+            .flowId(context.getFlowId())
+            .flowRevision(context.getFlowRevision())
+            .state(new State())
+            .trigger(executionTrigger)
+            .build();
 
         return Optional.of(execution);
     }

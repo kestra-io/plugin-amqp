@@ -32,80 +32,82 @@ class AmqpTest {
 
     @Inject
     protected StorageInterface storageInterface;
+
     @Test
     void pushAsList() throws Exception {
         Publish push = Publish.builder()
-                .uri("amqp://guest:guest@localhost:5672/my_vhost")
-                .exchange("kestramqp.exchange")
-                .routingKey("")
-                .headers(ImmutableMap.of("testHeader", "KestraTest"))
-                .from(Arrays.asList(new String[]{"value-1", "value-2"}))
-                .build();
+            .uri("amqp://guest:guest@localhost:5672/my_vhost")
+            .exchange("kestramqp.exchange")
+            .routingKey("")
+            .headers(ImmutableMap.of("testHeader", "KestraTest"))
+            .from(Arrays.asList(new String[]{"value-1", "value-2"}))
+            .build();
 
         Publish.Output pushOutput = push.run(runContextFactory.of());
 
         assertThat(pushOutput.getMessagesCount(), is(2));
 
         Pull pull = Pull.builder()
-                .uri("amqp://guest:guest@localhost:5672/my_vhost")
-                .acknowledge(true)
-                .queue("kestramqp.queue")
-                .maxDuration(Duration.ofSeconds(3))
-                .build();
+            .uri("amqp://guest:guest@localhost:5672/my_vhost")
+            .acknowledge(true)
+            .queue("kestramqp.queue")
+            .maxDuration(Duration.ofSeconds(3))
+            .build();
 
         Pull.Output pullOutput = pull.run(runContextFactory.of());
-        assertThat(pullOutput.getCount(),greaterThanOrEqualTo(2));
+        assertThat(pullOutput.getCount(), greaterThanOrEqualTo(2));
     }
+
     @Test
     void pushAsFileMaxRecord() throws Exception {
         URI uri = createTestFile(50000);
 
         Publish push = Publish.builder()
-                .uri("amqp://guest:guest@localhost:5672/my_vhost")
-                .exchange("kestramqp.exchange")
-                .routingKey("")
-                .headers(ImmutableMap.of("testHeader", "KestraTest"))
-                .from(uri.toString())
-                .build();
+            .uri("amqp://guest:guest@localhost:5672/my_vhost")
+            .exchange("kestramqp.exchange")
+            .routingKey("")
+            .headers(ImmutableMap.of("testHeader", "KestraTest"))
+            .from(uri.toString())
+            .build();
 
         Publish.Output pushOutput = push.run(runContextFactory.of());
 
         assertThat(pushOutput.getMessagesCount(), is(50000));
 
         Pull pull = Pull.builder()
-                .uri("amqp://guest:guest@localhost:5672/my_vhost")
-                .acknowledge(true)
-                .queue("kestramqp.queue")
-                .maxRecords(1000)
-                .build();
+            .uri("amqp://guest:guest@localhost:5672/my_vhost")
+            .acknowledge(true)
+            .queue("kestramqp.queue")
+            .maxRecords(1000)
+            .build();
 
         Pull.Output pullOutput = pull.run(runContextFactory.of());
-        assertThat(pullOutput.getCount(),greaterThanOrEqualTo(1000));
+        assertThat(pullOutput.getCount(), greaterThanOrEqualTo(1000));
     }
 
     @Test
     void pushAsString() throws Exception {
         Publish push = Publish.builder()
-                .uri("amqp://guest:guest@localhost:5672/my_vhost")
-                .exchange("kestramqp.exchange")
-                .routingKey("")
-                .headers(ImmutableMap.of("testHeader", "KestraTest"))
-                .from("My new message")
-                .build();
+            .uri("amqp://guest:guest@localhost:5672/my_vhost")
+            .exchange("kestramqp.exchange")
+            .routingKey("")
+            .headers(ImmutableMap.of("testHeader", "KestraTest"))
+            .from("My new message")
+            .build();
 
         Publish.Output pushOutput = push.run(runContextFactory.of());
 
         assertThat(pushOutput.getMessagesCount(), is(1));
 
         Pull pull = Pull.builder()
-                .uri("amqp://guest:guest@localhost:5672/my_vhost")
-                .acknowledge(true)
-                .queue("kestramqp.queue")
-                .maxDuration(Duration.ofSeconds(3))
-                .build();
+            .uri("amqp://guest:guest@localhost:5672/my_vhost")
+            .acknowledge(true)
+            .queue("kestramqp.queue")
+            .maxDuration(Duration.ofSeconds(3))
+            .build();
 
         Pull.Output pullOutput = pull.run(runContextFactory.of());
-        assertThat(pullOutput.getCount(),greaterThanOrEqualTo(1));
+        assertThat(pullOutput.getCount(), greaterThanOrEqualTo(1));
 
     }
 
@@ -114,44 +116,44 @@ class AmqpTest {
         URI uri = createTestFile(5);
 
         Publish push = Publish.builder()
-                .uri("amqp://guest:guest@localhost:5672/my_vhost")
-                .exchange("kestramqp.exchange")
-                .routingKey("")
-                .headers(ImmutableMap.of("testHeader", "KestraTest"))
-                .from(uri.toString())
-                .build();
+            .uri("amqp://guest:guest@localhost:5672/my_vhost")
+            .exchange("kestramqp.exchange")
+            .routingKey("")
+            .headers(ImmutableMap.of("testHeader", "KestraTest"))
+            .from(uri.toString())
+            .build();
 
         Publish.Output pushOutput = push.run(runContextFactory.of());
 
         assertThat(pushOutput.getMessagesCount(), is(5));
 
         Pull pull = Pull.builder()
-                .uri("amqp://guest:guest@localhost:5672/my_vhost")
-                .acknowledge(true)
-                .queue("kestramqp.queue")
-                .maxDuration(Duration.ofSeconds(3))
-                .build();
+            .uri("amqp://guest:guest@localhost:5672/my_vhost")
+            .acknowledge(true)
+            .queue("kestramqp.queue")
+            .maxDuration(Duration.ofSeconds(3))
+            .build();
 
         Pull.Output pullOutput = pull.run(runContextFactory.of());
-        assertThat(pullOutput.getCount(),is(5));
+        assertThat(pullOutput.getCount(), is(5));
 
     }
 
     @Test
-    void createAndBindTest() throws Exception{
+    void createAndBindTest() throws Exception {
         CreateExchange createExchange = CreateExchange.builder()
-                .uri("amqp://guest:guest@localhost:5672/my_vhost")
-                .name("amqptests.exchange")
-                .build();
+            .uri("amqp://guest:guest@localhost:5672/my_vhost")
+            .name("amqptests.exchange")
+            .build();
         CreateQueue createQueue = CreateQueue.builder()
-                .uri("amqp://guest:guest@localhost:5672/my_vhost")
-                .name("amqptests.queue")
-                .build();
+            .uri("amqp://guest:guest@localhost:5672/my_vhost")
+            .name("amqptests.queue")
+            .build();
         QueueBind queueBind = QueueBind.builder()
-                .uri("amqp://guest:guest@localhost:5672/my_vhost")
-                .exchange("amqptests.exchange")
-                .queue("amqptests.queue")
-                .build();
+            .uri("amqp://guest:guest@localhost:5672/my_vhost")
+            .exchange("amqptests.exchange")
+            .queue("amqptests.queue")
+            .build();
 
 
         CreateExchange.Output createExchangeOutput = createExchange.run(runContextFactory.of());
@@ -168,18 +170,18 @@ class AmqpTest {
     void setUp() throws Exception {
 
         CreateExchange createExchange = CreateExchange.builder()
-                .uri("amqp://guest:guest@localhost:5672/my_vhost")
-                .name("kestramqp.exchange")
-                .build();
+            .uri("amqp://guest:guest@localhost:5672/my_vhost")
+            .name("kestramqp.exchange")
+            .build();
         CreateQueue createQueue = CreateQueue.builder()
-                .uri("amqp://guest:guest@localhost:5672/my_vhost")
-                .name("kestramqp.queue")
-                .build();
+            .uri("amqp://guest:guest@localhost:5672/my_vhost")
+            .name("kestramqp.queue")
+            .build();
         QueueBind queueBind = QueueBind.builder()
-                .uri("amqp://guest:guest@localhost:5672/my_vhost")
-                .exchange("kestramqp.exchange")
-                .queue("kestramqp.queue")
-                .build();
+            .uri("amqp://guest:guest@localhost:5672/my_vhost")
+            .exchange("kestramqp.exchange")
+            .queue("kestramqp.queue")
+            .build();
 
         createExchange.run(runContextFactory.of());
         createQueue.run(runContextFactory.of());

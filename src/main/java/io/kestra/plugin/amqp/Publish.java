@@ -33,44 +33,44 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
     @NotNull
     @PluginProperty(dynamic = true)
     @Schema(
-            title = "The exchange to publish the message to"
+        title = "The exchange to publish the message to"
     )
     private String exchange;
 
     @Builder.Default
     @PluginProperty(dynamic = true)
     @Schema(
-            title = "The routing key"
+        title = "The routing key"
     )
     private String routingKey = "";
 
     @Builder.Default
     @Schema(
-            title = "The name of the queue"
+        title = "The name of the queue"
     )
     private String expiration = null;
 
     @Schema(
-            title = "The properties to add in the headers"
+        title = "The properties to add in the headers"
     )
     private Map<String, Object> headers;
 
     @Schema(
-            title = "Determines if message will be stored on disk after broker restarts"
+        title = "Determines if message will be stored on disk after broker restarts"
     )
     private Integer deliveryMode;
 
     @Builder.Default
     @Schema(
-            title = "The content type of the data published"
+        title = "The content type of the data published"
     )
     private String contentType = "application/json";
 
     @PluginProperty(dynamic = true)
     @NotNull
     @Schema(
-            title = "The source of the data published",
-            description = "Can be an internal storage uri, list or a string. If the URI is malformed, it will be considered as a string."
+        title = "The source of the data published",
+        description = "Can be an internal storage uri, list or a string. If the URI is malformed, it will be considered as a string."
     )
     private Object from;
 
@@ -89,30 +89,28 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
         Flowable<Integer> resultFlowable;
 
         if (this.from instanceof String || this.from instanceof List) {
-            if(this.from instanceof String) {
-                if(isValidURI((String) this.from)) {
+            if (this.from instanceof String) {
+                if (isValidURI((String) this.from)) {
                     URI from = new URI(runContext.render((String) this.from));
                     try (BufferedReader inputStream = new BufferedReader(new InputStreamReader(runContext.uriToInputStream(from)))) {
                         flowable = Flowable.create(FileSerde.reader(inputStream), BackpressureStrategy.BUFFER);
                         resultFlowable = this.buildFlowable(flowable, channel);
 
                         count = resultFlowable
-                                .reduce(Integer::sum)
-                                .blockingGet();
+                            .reduce(Integer::sum)
+                            .blockingGet();
                     }
-                }
-                else {
+                } else {
                     String message = (String) this.from;
                     publish(channel, message);
                 }
-            }
-            else {
+            } else {
                 flowable = Flowable.fromArray(((List<Object>) this.from).toArray());
                 resultFlowable = this.buildFlowable(flowable, channel);
 
                 count = resultFlowable
-                        .reduce(Integer::sum)
-                        .blockingGet();
+                    .reduce(Integer::sum)
+                    .blockingGet();
             }
         }
 
@@ -128,7 +126,7 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
     }
 
 
-    private Flowable<Integer> buildFlowable(Flowable<Object> flowable, Channel channel){
+    private Flowable<Integer> buildFlowable(Flowable<Object> flowable, Channel channel) {
         return flowable
             .map(row -> {
                 String message = String.valueOf(row);
@@ -137,7 +135,7 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
             });
     }
 
-    private Boolean isValidURI(String from){
+    private Boolean isValidURI(String from) {
         try {
             new URI(from);
             return true;
@@ -148,10 +146,10 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
 
     private void publish(Channel channel, String message) throws IOException {
         channel.basicPublish(
-                getExchange(),
-                getRoutingKey(),
-                new AMQP.BasicProperties(this.contentType, "UTF-8", getHeaders(), this.deliveryMode, null, null, null, getExpiration(), null, null, null, null, null, null),
-                message.getBytes()
+            getExchange(),
+            getRoutingKey(),
+            new AMQP.BasicProperties(this.contentType, "UTF-8", getHeaders(), this.deliveryMode, null, null, null, getExpiration(), null, null, null, null, null, null),
+            message.getBytes()
         );
     }
 
@@ -160,7 +158,7 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
     public static class Output implements io.kestra.core.models.tasks.Output {
 
         @io.swagger.v3.oas.annotations.media.Schema(
-                title = "Number of message published"
+            title = "Number of message published"
         )
         private final Integer messagesCount;
     }

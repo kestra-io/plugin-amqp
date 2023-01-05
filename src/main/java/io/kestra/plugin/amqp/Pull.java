@@ -29,39 +29,39 @@ import static io.kestra.core.utils.Rethrow.throwRunnable;
 @Getter
 @NoArgsConstructor
 @Schema(
-        title = "Pull messages from an AMQP queue.",
-        description = "Pull messages from an AMQP queue, required a maxDuration or a maxRecords."
+    title = "Pull messages from an AMQP queue.",
+    description = "Pull messages from an AMQP queue, required a maxDuration or a maxRecords."
 )
 public class Pull extends AbstractAmqpConnection implements RunnableTask<Pull.Output> {
     @NotNull
     @PluginProperty(dynamic = true)
     @Schema(
-            title = "The queue to pull messages from"
+        title = "The queue to pull messages from"
     )
     private String queue;
 
     @Schema(
-            title = "Acknowledge message(s)",
-            description = "If the message should be acknowledge when consumed."
+        title = "Acknowledge message(s)",
+        description = "If the message should be acknowledge when consumed."
     )
     @Builder.Default
     private boolean acknowledge = true;
 
     @Builder.Default
     @Schema(
-            title = "A client-generated consumer tag to establish context."
+        title = "A client-generated consumer tag to establish context."
     )
     private String consumerTag = "Kestra";
 
     @Schema(
-            title = "The max number of rows to fetch before stopping.",
-            description = "It's not an hard limit and is evaluated every second."
+        title = "The max number of rows to fetch before stopping.",
+        description = "It's not an hard limit and is evaluated every second."
     )
     private Integer maxRecords;
 
     @Schema(
-            title = "The max duration waiting for new rows.",
-            description = "It's not an hard limit and is evaluated every second."
+        title = "The max duration waiting for new rows.",
+        description = "It's not an hard limit and is evaluated every second."
     )
     private Duration maxDuration;
 
@@ -90,16 +90,16 @@ public class Pull extends AbstractAmqpConnection implements RunnableTask<Pull.Ou
 
             thread = new Thread(throwRunnable(() -> {
                 channel.basicConsume(
-                        this.queue,
-                        this.acknowledge,
-                        this.consumerTag,
-                        (consumerTag, message) -> {
-                            FileSerde.write(outputFile, new String(message.getBody(), StandardCharsets.UTF_8));
-                            total.getAndIncrement();
-                            count.compute(this.queue, (s, integer) -> integer == null ? 1 : integer + 1);
-                        },
-                        (consumerTag) -> {
-                        }
+                    this.queue,
+                    this.acknowledge,
+                    this.consumerTag,
+                    (consumerTag, message) -> {
+                        FileSerde.write(outputFile, new String(message.getBody(), StandardCharsets.UTF_8));
+                        total.getAndIncrement();
+                        count.compute(this.queue, (s, integer) -> integer == null ? 1 : integer + 1);
+                    },
+                    (consumerTag) -> {
+                    }
                 );
             }));
             thread.setDaemon(true);
@@ -114,9 +114,9 @@ public class Pull extends AbstractAmqpConnection implements RunnableTask<Pull.Ou
             outputFile.flush();
         }
         return Output.builder()
-                .uri(runContext.putTempFile(tempFile))
-                .count(total.get())
-                .build();
+            .uri(runContext.putTempFile(tempFile))
+            .count(total.get())
+            .build();
     }
 
     @SuppressWarnings("RedundantIfStatement")
@@ -135,11 +135,11 @@ public class Pull extends AbstractAmqpConnection implements RunnableTask<Pull.Ou
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
         @Schema(
-                title = "Number of row consumed."
+            title = "Number of row consumed."
         )
         private final Integer count;
         @Schema(
-                title = "File URI containing consumed message."
+            title = "File URI containing consumed message."
         )
         private final URI uri;
 
