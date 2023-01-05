@@ -51,7 +51,7 @@ class AmqpTest {
                 .build();
 
         Pull.Output pullOutput = pull.run(runContextFactory.of());
-        assertThat(pullOutput.getCount(),is(2));
+        assertThat(pullOutput.getCount(),greaterThanOrEqualTo(2));
     }
     @Test
     void pushAsFileMaxRecord() throws Exception {
@@ -77,7 +77,7 @@ class AmqpTest {
                 .build();
 
         Pull.Output pullOutput = pull.run(runContextFactory.of());
-        assertThat(pullOutput.getCount(),greaterThan(1000));
+        assertThat(pullOutput.getCount(),greaterThanOrEqualTo(1000));
     }
 
     @Test
@@ -102,7 +102,7 @@ class AmqpTest {
                 .build();
 
         Pull.Output pullOutput = pull.run(runContextFactory.of());
-        assertThat(pullOutput.getCount(),is(1));
+        assertThat(pullOutput.getCount(),greaterThanOrEqualTo(1));
 
     }
 

@@ -1,7 +1,5 @@
 package io.kestra.plugin.amqp;
 
-import io.kestra.core.models.annotations.Example;
-import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.conditions.ConditionContext;
 import io.kestra.core.models.executions.Execution;
@@ -28,20 +26,7 @@ import java.util.Optional;
 @Getter
 @NoArgsConstructor
 @Schema(
-        title = "Wait for key list in Redis database"
-)
-@Plugin(
-        examples = {
-                @Example(
-                        code = {
-                                "id: watch",
-                                "type: io.kestra.plugin.redis.Trigger",
-                                "uri: redis://localhost:6379/0",
-                                "key: mytriggerkey",
-                                "count: 2"
-                        }
-                )
-        }
+        title = "Wait for message in AMQP queue"
 )
 public class Trigger extends AbstractTrigger implements PollingTriggerInterface, TriggerOutput<Pull.Output> {
     @Schema(
@@ -53,6 +38,9 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
 
     @NotNull
     @PluginProperty(dynamic = true)
+    @Schema(
+            title = "The queue to watch"
+    )
     private String queue;
 
     @Schema(
@@ -63,9 +51,21 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
     private boolean acknowledge = true;
 
     @Builder.Default
+    @Schema(
+            title = "A client-generated consumer tag to establish context."
+    )
     private String consumerTag = "Kestra";
 
+    @Schema(
+            title = "The max number of rows to fetch before stopping.",
+            description = "It's not an hard limit and is evaluated every second."
+    )
     private Integer maxRecords;
+
+    @Schema(
+            title = "The max duration waiting for new rows.",
+            description = "It's not an hard limit and is evaluated every second."
+    )
     private Duration maxDuration;
     @Override
     public Optional<Execution> evaluate(ConditionContext conditionContext, TriggerContext context) throws Exception {

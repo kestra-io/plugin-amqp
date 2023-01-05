@@ -26,31 +26,52 @@ import javax.validation.constraints.NotNull;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Push a message to an AMQP exchange",
-    description = "Push a message to an AMQP exchange, including specified headers"
+    title = "Publish a message to an AMQP exchange",
+    description = "Publish a message to an AMQP exchange, including specified headers"
 )
 public class Publish extends AbstractAmqpConnection implements RunnableTask<Publish.Output> {
     @NotNull
     @PluginProperty(dynamic = true)
+    @Schema(
+            title = "The exchange to publish the message to"
+    )
     private String exchange;
 
     @Builder.Default
     @PluginProperty(dynamic = true)
+    @Schema(
+            title = "The routing key"
+    )
     private String routingKey = "";
 
     @Builder.Default
+    @Schema(
+            title = "The name of the queue"
+    )
     private String expiration = null;
 
+    @Schema(
+            title = "The properties to add in the headers"
+    )
     private Map<String, Object> headers;
 
-    @Builder.Default
-    private String data = "";
+    @Schema(
+            title = "Determines if message will be stored on disk after broker restarts"
+    )
+    private Integer deliveryMode;
 
     @Builder.Default
+    @Schema(
+            title = "The content type of the data published"
+    )
     private String contentType = "application/json";
 
     @PluginProperty(dynamic = true)
     @NotNull
+    @Schema(
+            title = "The source of the data published",
+            description = "Can be an internal storage uri, list or a string. If the URI is malformed, it will be considered as a string."
+    )
     private Object from;
 
     @Override
@@ -61,7 +82,7 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
         Connection connection = factory.newConnection();
         Channel channel = connection.createChannel();
 
-        logger.debug("AMQPush pushing to " + getUri() + " " + getExchange());
+        logger.debug("AMQP publishing to " + getUri() + " " + getExchange());
 
         Integer count = 1;
         Flowable<Object> flowable;
@@ -129,7 +150,7 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
         channel.basicPublish(
                 getExchange(),
                 getRoutingKey(),
-                new AMQP.BasicProperties(this.contentType, "UTF-8", getHeaders(), null, null, null, null, getExpiration(), null, null, null, null, null, null),
+                new AMQP.BasicProperties(this.contentType, "UTF-8", getHeaders(), this.deliveryMode, null, null, null, getExpiration(), null, null, null, null, null, null),
                 message.getBytes()
         );
     }

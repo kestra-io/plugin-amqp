@@ -19,34 +19,44 @@ import java.util.Map;
 @Getter
 @NoArgsConstructor
 @Schema(
-        title = "Push a message to an AMQP exchange",
-        description = "Push a message to an AMQP exchange, including specified headers"
+        title = "Bind a Queue to an Exchange."
 )
 public class QueueBind extends AbstractAmqpConnection implements RunnableTask<QueueBind.Output> {
 
     @NotNull
     @PluginProperty(dynamic = true)
+    @Schema(
+            title = "The exchange to bind with."
+    )
     private String exchange;
 
     @NotNull
     @PluginProperty(dynamic = true)
+    @Schema(
+            title = "The queue to bind."
+    )
     private String queue;
 
     @NotNull
     @Builder.Default
+    @Schema(
+            title = "The routing key to use for the binding."
+    )
     private String routingKey = "";
 
-
+    @Schema(
+            title = "Other properties (binding parameters)."
+    )
     private Map<String, Object> args;
 
     @Override
     public Output run(RunContext runContext) throws Exception {
         ConnectionFactory factory = this.connectionFactory(runContext);
 
-        Connection connection = factory.newConnection();
-        Channel channel = connection.createChannel();
-
-        channel.queueBind(runContext.render(queue), runContext.render(exchange), routingKey, args);
+        try(Connection connection = factory.newConnection()){
+            Channel channel = connection.createChannel();
+            channel.queueBind(runContext.render(queue), runContext.render(exchange), routingKey, args);
+        }
 
         return Output.builder().queue(queue).exchange(exchange).build();
     }

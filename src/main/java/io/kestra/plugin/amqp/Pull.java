@@ -28,25 +28,40 @@ import static io.kestra.core.utils.Rethrow.throwRunnable;
 @Getter
 @NoArgsConstructor
 @Schema(
-        title = "Pull a message from an AMQP queue",
-        description = "Pull a message from an AMQP queue, including specified headers"
+        title = "Pull messages from an AMQP queue.",
+        description = "Pull messages from an AMQP queue, required a maxDuration or a maxRecords."
 )
 public class Pull extends AbstractAmqpConnection implements RunnableTask<Pull.Output> {
     @NotNull
     @PluginProperty(dynamic = true)
+    @Schema(
+            title = "The queue to pull messages from"
+    )
     private String queue;
 
     @Schema(
             title = "Acknowledge message(s)",
-            description = "If the message should be acknowledge when consumed"
+            description = "If the message should be acknowledge when consumed."
     )
     @Builder.Default
     private boolean acknowledge = true;
 
     @Builder.Default
+    @Schema(
+            title = "A client-generated consumer tag to establish context."
+    )
     private String consumerTag = "Kestra";
 
+    @Schema(
+            title = "The max number of rows to fetch before stopping.",
+            description = "It's not an hard limit and is evaluated every second."
+    )
     private Integer maxRecords;
+
+    @Schema(
+            title = "The max duration waiting for new rows.",
+            description = "It's not an hard limit and is evaluated every second."
+    )
     private Duration maxDuration;
 
     @Override
@@ -118,10 +133,12 @@ public class Pull extends AbstractAmqpConnection implements RunnableTask<Pull.Ou
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
         @Schema(
-                title = "Count",
-                description = "Number of row consumed"
+                title = "Number of row consumed."
         )
         private final Integer count;
+        @Schema(
+                title = "File URI containing consumed message."
+        )
         private final URI uri;
 
     }
