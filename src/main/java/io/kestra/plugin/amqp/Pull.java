@@ -2,6 +2,7 @@ package io.kestra.plugin.amqp;
 
 import com.rabbitmq.client.*;
 import io.kestra.core.models.annotations.PluginProperty;
+import io.kestra.core.models.executions.metrics.Counter;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.serializers.FileSerde;
@@ -109,6 +110,7 @@ public class Pull extends AbstractAmqpConnection implements RunnableTask<Pull.Ou
                 Thread.sleep(100);
             }
 
+            count.forEach((s, integer) -> runContext.metric(Counter.of("records", integer, "topic", s)));
             outputFile.flush();
         }
         return Output.builder()
