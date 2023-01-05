@@ -3,6 +3,8 @@ package io.kestra.plugin.amqp;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+import io.kestra.core.models.annotations.Example;
+import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
@@ -20,6 +22,18 @@ import java.util.Map;
 @NoArgsConstructor
 @Schema(
     title = "Bind a Queue to an Exchange."
+)
+@Plugin(
+    examples = {
+        @Example(
+            code = {
+                "type: io.kestra.plugin.amqp.QueueBind",
+                "uri: amqp://guest:guest@localhost:5672/my_vhost",
+                "exchange: kestramqp.exchange",
+                "queue: kestramqp.queue"
+            }
+        )
+    }
 )
 public class QueueBind extends AbstractAmqpConnection implements RunnableTask<QueueBind.Output> {
 

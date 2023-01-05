@@ -1,6 +1,8 @@
 package io.kestra.plugin.amqp;
 
 import com.rabbitmq.client.*;
+import io.kestra.core.models.annotations.Example;
+import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.executions.metrics.Counter;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
@@ -27,6 +29,18 @@ import static io.kestra.core.utils.Rethrow.throwRunnable;
 @Schema(
     title = "Consume messages from an AMQP queue.",
     description = "Required a maxDuration or a maxRecords."
+)
+@Plugin(
+    examples = {
+        @Example(
+            code = {
+                "type: io.kestra.plugin.amqp.Consume",
+                "uri: amqp://guest:guest@localhost:5672/my_vhost",
+                "queue: kestramqp.queue",
+                "maxRecords: 1000"
+            }
+        )
+    }
 )
 public class Consume extends AbstractAmqpConnection implements RunnableTask<Consume.Output>, ConsumeInterface {
 
@@ -83,7 +97,7 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
             }
             channel.basicCancel(this.consumerTag);
             channel.close();
-            while(channel.isOpen()){
+            while (channel.isOpen()) {
                 wait(100);
             }
             thread.join();

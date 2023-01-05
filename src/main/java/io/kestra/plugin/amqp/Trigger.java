@@ -1,5 +1,7 @@
 package io.kestra.plugin.amqp;
 
+import io.kestra.core.models.annotations.Example;
+import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.conditions.ConditionContext;
 import io.kestra.core.models.executions.Execution;
 import io.kestra.core.models.executions.ExecutionTrigger;
@@ -27,6 +29,18 @@ import java.util.Optional;
 @NoArgsConstructor
 @Schema(
     title = "Wait for message in AMQP queue"
+)
+@Plugin(
+    examples = {
+        @Example(
+            code = {
+                "type: io.kestra.plugin.amqp.Trigger",
+                "uri: amqp://guest:guest@localhost:5672/my_vhost",
+                "maxRecords: 2",
+                "queue: amqpTrigger.queue"
+            }
+        )
+    }
 )
 public class Trigger extends AbstractTrigger implements PollingTriggerInterface, TriggerOutput<Consume.Output>,ConsumeInterface {
     @Schema(

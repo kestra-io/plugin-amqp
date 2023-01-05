@@ -3,6 +3,8 @@ package io.kestra.plugin.amqp;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+import io.kestra.core.models.annotations.Example;
+import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
@@ -21,6 +23,17 @@ import java.util.Map;
 @Schema(
     title = "Create a Queue",
     description = "Create a Queue, including specified arguments"
+)
+@Plugin(
+    examples = {
+        @Example(
+            code = {
+                "type: io.kestra.plugin.amqp.CreateQueue",
+                "uri: amqp://guest:guest@localhost:5672/my_vhost",
+                "name: kestramqp.queue"
+            }
+        )
+    }
 )
 public class CreateQueue extends AbstractAmqpConnection implements RunnableTask<CreateQueue.Output> {
 

@@ -1,6 +1,8 @@
 package io.kestra.plugin.amqp;
 
 import com.rabbitmq.client.*;
+import io.kestra.core.models.annotations.Example;
+import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
@@ -19,6 +21,17 @@ import java.util.Map;
 @Schema(
     title = "Create an Exchange",
     description = "Create an Exchange, including specified arguments"
+)
+@Plugin(
+    examples = {
+        @Example(
+            code = {
+                "type: io.kestra.plugin.amqp.CreateExchange",
+                "uri: amqp://guest:guest@localhost:5672/my_vhost",
+                "name: kestramqp.exchange"
+            }
+        )
+    }
 )
 public class CreateExchange extends AbstractAmqpConnection implements RunnableTask<CreateExchange.Output> {
 

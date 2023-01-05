@@ -2,6 +2,8 @@ package io.kestra.plugin.amqp;
 
 import com.rabbitmq.client.*;
 import io.kestra.core.exceptions.IllegalVariableEvaluationException;
+import io.kestra.core.models.annotations.Example;
+import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.executions.metrics.Counter;
 import io.kestra.core.models.tasks.RunnableTask;
@@ -30,6 +32,20 @@ import javax.validation.constraints.NotNull;
 @Schema(
     title = "Publish a message to an AMQP exchange",
     description = "Publish a message to an AMQP exchange, including specified headers"
+)
+@Plugin(
+    examples = {
+        @Example(
+            code = {
+                "type: io.kestra.plugin.amqp.Publish",
+                "uri:amqp://guest:guest@localhost:5672/my_vhost",
+                "exchange:kestramqp.exchange",
+                "headers:",
+                "   testHeader: KestraTest",
+                "from: My new message"
+            }
+        )
+    }
 )
 public class Publish extends AbstractAmqpConnection implements RunnableTask<Publish.Output> {
     @NotNull
