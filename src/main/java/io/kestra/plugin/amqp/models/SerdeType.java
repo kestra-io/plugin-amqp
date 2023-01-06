@@ -1,4 +1,4 @@
-package io.kestra.plugin.amqp.services;
+package io.kestra.plugin.amqp.models;
 
 import io.kestra.core.serializers.JacksonMapper;
 import io.swagger.v3.oas.annotations.media.Schema;

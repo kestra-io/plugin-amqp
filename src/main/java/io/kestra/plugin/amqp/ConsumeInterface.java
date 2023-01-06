@@ -1,7 +1,7 @@
 package io.kestra.plugin.amqp;
 
 import io.kestra.core.models.annotations.PluginProperty;
-import io.kestra.plugin.amqp.services.SerdeType;
+import io.kestra.plugin.amqp.models.SerdeType;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import javax.validation.constraints.NotNull;

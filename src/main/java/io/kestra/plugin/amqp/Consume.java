@@ -7,21 +7,21 @@ import io.kestra.core.models.executions.metrics.Counter;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.serializers.FileSerde;
-import io.kestra.plugin.amqp.services.Message;
-import io.kestra.plugin.amqp.services.SerdeType;
+import io.kestra.plugin.amqp.models.Message;
+import io.kestra.plugin.amqp.models.SerdeType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import org.slf4j.Logger;
 
 import java.io.*;
 import java.net.URI;
 import java.time.Duration;
 import java.time.ZonedDateTime;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static io.kestra.core.utils.Rethrow.throwBiConsumer;
 import static io.kestra.core.utils.Rethrow.throwRunnable;
 
 @SuperBuilder
@@ -60,31 +60,35 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
 
     @Override
     public Consume.Output run(RunContext runContext) throws Exception {
+        Logger logger = runContext.logger();
         ConnectionFactory factory = this.connectionFactory(runContext);
 
         AtomicInteger total = new AtomicInteger();
         ZonedDateTime started = ZonedDateTime.now();
 
         File tempFile = runContext.tempFile(".ion").toFile();
-        Thread thread = null;
 
         if (this.maxDuration == null && this.maxRecords == null) {
             throw new Exception("maxDuration or maxRecords must be set to avoid infinite loop");
         }
 
         try (BufferedOutputStream outputFile = new BufferedOutputStream(new FileOutputStream(tempFile));
-             Connection connection = factory.newConnection()) {
+            Connection connection = factory.newConnection()) {
+
+            connection.addShutdownListener(cause -> {
+                logger.warn("addShutdownListener", cause);
+            });
             Channel channel = connection.createChannel();
 
             AtomicReference<Long> lastDeliveryTag = new AtomicReference<>();
 
-            thread = new Thread(throwRunnable(() -> {
+            Thread thread = new Thread(throwRunnable(() -> {
                 channel.basicConsume(
                     runContext.render(this.queue),
                     false,
                     this.consumerTag,
                     (consumerTag, message) -> {
-                        Message msg = new Message(message.getBody(), serdeType, message.getProperties());
+                        Message msg = Message.of(message.getBody(), serdeType, message.getProperties());
 
                         FileSerde.write(outputFile, msg);
                         total.getAndIncrement();
@@ -93,6 +97,10 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
 
                     },
                     (consumerTag) -> {
+                        logger.warn("CancelCallback: {}", consumerTag);
+                    },
+                    (consumerTag1, sig) -> {
+                        logger.warn("ConsumerShutdownSignalCallback: {} {}", consumerTag1, sig);
                     }
                 );
             }));

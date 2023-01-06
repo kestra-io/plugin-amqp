@@ -4,8 +4,10 @@ import com.google.common.collect.ImmutableMap;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.runners.RunContextFactory;
 import io.kestra.core.serializers.FileSerde;
+import io.kestra.core.serializers.JacksonMapper;
 import io.kestra.core.utils.IdUtils;
 import io.kestra.core.storages.StorageInterface;
+import io.kestra.plugin.amqp.models.Message;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeAll;
@@ -34,8 +36,16 @@ class AMQPTest {
         Publish push = Publish.builder()
             .uri("amqp://guest:guest@localhost:5672/my_vhost")
             .exchange("kestramqp.exchange")
-            .headers(ImmutableMap.of("testHeader", "KestraTest"))
-            .from(Arrays.asList(new String[]{"value-1", "value-2"}))
+            .from(Arrays.asList(
+                JacksonMapper.toMap(Message.builder()
+                    .headers(ImmutableMap.of("testHeader", "KestraTest"))
+                    .data("value-1")
+                    .build()),
+                JacksonMapper.toMap(Message.builder()
+                    .appId("unit-kestra")
+                    .data("value-2")
+                    .build())
+            ))
             .build();
 
         Publish.Output pushOutput = push.run(runContextFactory.of());
@@ -59,7 +69,7 @@ class AMQPTest {
         Publish push = Publish.builder()
             .uri("amqp://guest:guest@localhost:5672/my_vhost")
             .exchange("kestramqp.exchange")
-            .headers(ImmutableMap.of("testHeader", "KestraTest"))
+            // .headers(ImmutableMap.of("testHeader", "KestraTest"))
             .from(uri.toString())
             .build();
 
@@ -82,7 +92,7 @@ class AMQPTest {
         Publish push = Publish.builder()
             .uri("amqp://guest:guest@localhost:5672/my_vhost")
             .exchange("kestramqp.exchange")
-            .headers(ImmutableMap.of("testHeader", "KestraTest"))
+            // .headers(ImmutableMap.of("testHeader", "KestraTest"))
             .from("My new message")
             .build();
 
@@ -108,7 +118,7 @@ class AMQPTest {
         Publish push = Publish.builder()
             .uri("amqp://guest:guest@localhost:5672/my_vhost")
             .exchange("kestramqp.exchange")
-            .headers(ImmutableMap.of("testHeader", "KestraTest"))
+            // .headers(ImmutableMap.of("testHeader", "KestraTest"))
             .from(uri.toString())
             .build();
 

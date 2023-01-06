@@ -9,20 +9,20 @@ import io.kestra.core.models.executions.metrics.Counter;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.serializers.FileSerde;
-import io.kestra.plugin.amqp.services.SerdeType;
+import io.kestra.core.serializers.JacksonMapper;
+import io.kestra.plugin.amqp.models.Message;
+import io.kestra.plugin.amqp.models.SerdeType;
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
-import org.slf4j.Logger;
 
 import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.time.Duration;
+import java.sql.Date;
 import java.util.List;
-import java.util.Map;
 import javax.validation.constraints.NotNull;
 
 @SuperBuilder
@@ -60,28 +60,6 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
     )
     private String routingKey;
 
-    @Schema(
-        title = "The name of the queue"
-    )
-    private Duration expiration;
-
-    @Schema(
-        title = "The properties to add in the headers"
-    )
-    private Map<String, Object> headers;
-
-    @Schema(
-        title = "Determines if message will be stored on disk after broker restarts"
-    )
-    private Integer deliveryMode;
-
-    @Builder.Default
-    @PluginProperty(dynamic = true)
-    @Schema(
-        title = "The content type of the data published"
-    )
-    private String contentType = "application/json";
-
     @PluginProperty(dynamic = true)
     @NotNull
     @Schema(
@@ -101,34 +79,39 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
             Channel channel = connection.createChannel();
 
             Integer count = 1;
-            Flowable<Object> flowable;
+            Flowable<Message> flowable;
             Flowable<Integer> resultFlowable;
 
-            if (this.from instanceof String || this.from instanceof List) {
-                if (this.from instanceof String) {
-                    if (isValidURI((String) this.from)) {
-                        URI from = new URI(runContext.render((String) this.from));
-                        try (BufferedReader inputStream = new BufferedReader(new InputStreamReader(runContext.uriToInputStream(from)))) {
-                            flowable = Flowable.create(FileSerde.reader(inputStream), BackpressureStrategy.BUFFER);
-                            resultFlowable = this.buildFlowable(flowable, channel, runContext);
+            if (this.from instanceof String) {
+                if (!isValidURI((String) this.from)) {
+                    throw new Exception("Invalid from parameter, must be a Kestra internal storage uri");
+                }
 
-                            count = resultFlowable
-                                .reduce(Integer::sum)
-                                .blockingGet();
-                        }
-                    } else {
-                        publish(channel, serdeType.serialize(this.from), runContext);
-                    }
-                } else {
-                    flowable = Flowable.fromArray(((List<Object>) this.from).toArray());
+                URI from = new URI(runContext.render((String) this.from));
+                try (BufferedReader inputStream = new BufferedReader(new InputStreamReader(runContext.uriToInputStream(from)))) {
+                    flowable = Flowable.create(FileSerde.reader(inputStream, Message.class), BackpressureStrategy.BUFFER);
                     resultFlowable = this.buildFlowable(flowable, channel, runContext);
 
                     count = resultFlowable
                         .reduce(Integer::sum)
                         .blockingGet();
                 }
-                channel.close();
+
+            } else if (this.from instanceof List) {
+                flowable = Flowable
+                    .fromArray(((List<Object>) this.from).toArray())
+                    .map(o -> JacksonMapper.toMap(o, Message.class));
+
+                resultFlowable = this.buildFlowable(flowable, channel, runContext);
+
+                count = resultFlowable
+                    .reduce(Integer::sum)
+                    .blockingGet();
+            } else {
+                publish(channel, JacksonMapper.toMap(this.from, Message.class), runContext);
             }
+
+            channel.close();
 
             // metrics
             runContext.metric(Counter.of("records", count));
@@ -140,43 +123,48 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
     }
 
 
-    private Flowable<Integer> buildFlowable(Flowable<Object> flowable, Channel channel, RunContext runContext) {
+    private Flowable<Integer> buildFlowable(Flowable<Message> flowable, Channel channel, RunContext runContext) {
         return flowable
-            .map(row -> {
-                publish(channel, serdeType.serialize(row), runContext);
+            .map(message -> {
+                publish(channel, message, runContext);
                 return 1;
             });
     }
 
+
+
+
     private Boolean isValidURI(String from) {
         try {
-            new URI(from);
-            return true;
+            URI uri = new URI(from);
+
+            return uri.getScheme().equals("kestra");
         } catch (URISyntaxException e) {
             return false;
         }
     }
 
-    private void publish(Channel channel, byte[] message, RunContext runContext) throws IOException, IllegalVariableEvaluationException {
+    private void publish(Channel channel, Message message, RunContext runContext) throws IOException, IllegalVariableEvaluationException {
         channel.basicPublish(
             runContext.render(this.exchange),
             this.routingKey == null ? "" : runContext.render(this.routingKey),
             new AMQP.BasicProperties(
-                runContext.render(this.contentType),
-                "UTF-8", this.headers,
-                this.deliveryMode,
-                null,
-                null,
-                null,
-                this.expiration != null ? String.valueOf(this.expiration.toMillis()) : null,
-                null,
-                null,
-                null,
-                null,
-                null,
+                message.getContentType(),
+                message.getContentEncoding(),
+                message.getHeaders(),
+                message.getDeliveryMode(),
+                message.getPriority(),
+                message.getCorrelationId(),
+                message.getReplyTo(),
+                message.getExpiration() != null ? String.valueOf(message.getExpiration().toMillis()) : null,
+                message.getMessageId(),
+                message.getTimestamp() != null ? Date.from(message.getTimestamp()) : null,
+                message.getType(),
+                message.getUserId(),
+                message.getAppId(),
                 null
             ),
-            message
+            serdeType.serialize(message.getData())
         );
     }
 

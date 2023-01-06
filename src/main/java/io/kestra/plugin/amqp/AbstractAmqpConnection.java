@@ -1,16 +1,17 @@
 package io.kestra.plugin.amqp;
 
-import com.rabbitmq.client.*;
+import com.rabbitmq.client.ConnectionFactory;
 import io.kestra.core.exceptions.IllegalVariableEvaluationException;
 import io.kestra.core.models.tasks.Task;
 import io.kestra.core.runners.RunContext;
-import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.*;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import javax.validation.constraints.NotNull;
 
 @SuperBuilder
 @ToString
@@ -40,6 +41,8 @@ public abstract class AbstractAmqpConnection extends Task implements AmqpConnect
         if (!amqpUri.getPath().equals("")) {
             factory.setVirtualHost(amqpUri.getPath());
         }
+
+        factory.setExceptionHandler(new AmqpExceptionHandler(runContext.logger()));
 
         return factory;
     }

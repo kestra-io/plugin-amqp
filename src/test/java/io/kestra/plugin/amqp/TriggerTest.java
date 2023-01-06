@@ -77,7 +77,7 @@ class TriggerTest {
                 .type(Publish.class.getName())
                 .uri("amqp://guest:guest@localhost:5672/my_vhost")
                 .exchange("amqpTrigger.exchange")
-                .headers(ImmutableMap.of("testHeader", "KestraTest"))
+//                .headers(ImmutableMap.of("testHeader", "KestraTest"))
                 .from(Arrays.asList(new String[]{"value-1", "value-2"}))
                 .build();
 
