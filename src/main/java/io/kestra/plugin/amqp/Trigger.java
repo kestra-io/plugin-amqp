@@ -42,7 +42,10 @@ import java.util.Optional;
         )
     }
 )
-public class Trigger extends AbstractTrigger implements PollingTriggerInterface, TriggerOutput<Consume.Output>,ConsumeInterface {
+public class Trigger extends AbstractTrigger implements PollingTriggerInterface, TriggerOutput<Consume.Output>, ConsumeInterface {
+    @Builder.Default
+    private final Duration interval = Duration.ofSeconds(60);
+
     @Schema(
         title = "The connection string"
     )
@@ -102,8 +105,4 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
 
         return Optional.of(execution);
     }
-
-    @Builder.Default
-    private final Duration interval = Duration.ofSeconds(60);
-
 }

@@ -17,11 +17,7 @@ import javax.validation.constraints.NotNull;
 @EqualsAndHashCode
 @Getter
 @NoArgsConstructor
-public abstract class AbstractAmqpConnection extends Task {
-    @Schema(
-        title = "The connection string"
-    )
-    @NotNull
+public abstract class AbstractAmqpConnection extends Task implements AmqpConnectionInterface {
     private String uri;
 
     public ConnectionFactory connectionFactory(RunContext runContext) throws URISyntaxException, IllegalVariableEvaluationException {

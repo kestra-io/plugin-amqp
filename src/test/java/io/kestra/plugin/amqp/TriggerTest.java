@@ -77,7 +77,6 @@ class TriggerTest {
                 .type(Publish.class.getName())
                 .uri("amqp://guest:guest@localhost:5672/my_vhost")
                 .exchange("amqpTrigger.exchange")
-                .routingKey("")
                 .headers(ImmutableMap.of("testHeader", "KestraTest"))
                 .from(Arrays.asList(new String[]{"value-1", "value-2"}))
                 .build();
@@ -99,7 +98,7 @@ class TriggerTest {
     @BeforeAll
     void setUp() throws Exception {
 
-        CreateExchange createExchange = CreateExchange.builder()
+        DeclareExchange declareExchange = DeclareExchange.builder()
             .uri("amqp://guest:guest@localhost:5672/my_vhost")
             .name("amqpTrigger.exchange")
             .build();
@@ -113,7 +112,7 @@ class TriggerTest {
             .queue("amqpTrigger.queue")
             .build();
 
-        createExchange.run(runContextFactory.of());
+        declareExchange.run(runContextFactory.of());
         createQueue.run(runContextFactory.of());
         queueBind.run(runContextFactory.of());
     }

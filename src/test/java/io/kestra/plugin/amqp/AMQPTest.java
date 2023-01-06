@@ -20,10 +20,6 @@ import java.util.Arrays;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
-/**
- * This test will only test the main task, this allow you to send any input
- * parameters to your task and test the returning behaviour easily.
- */
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class AMQPTest {
@@ -38,7 +34,6 @@ class AMQPTest {
         Publish push = Publish.builder()
             .uri("amqp://guest:guest@localhost:5672/my_vhost")
             .exchange("kestramqp.exchange")
-            .routingKey("")
             .headers(ImmutableMap.of("testHeader", "KestraTest"))
             .from(Arrays.asList(new String[]{"value-1", "value-2"}))
             .build();
@@ -64,7 +59,6 @@ class AMQPTest {
         Publish push = Publish.builder()
             .uri("amqp://guest:guest@localhost:5672/my_vhost")
             .exchange("kestramqp.exchange")
-            .routingKey("")
             .headers(ImmutableMap.of("testHeader", "KestraTest"))
             .from(uri.toString())
             .build();
@@ -88,7 +82,6 @@ class AMQPTest {
         Publish push = Publish.builder()
             .uri("amqp://guest:guest@localhost:5672/my_vhost")
             .exchange("kestramqp.exchange")
-            .routingKey("")
             .headers(ImmutableMap.of("testHeader", "KestraTest"))
             .from("My new message")
             .build();
@@ -115,7 +108,6 @@ class AMQPTest {
         Publish push = Publish.builder()
             .uri("amqp://guest:guest@localhost:5672/my_vhost")
             .exchange("kestramqp.exchange")
-            .routingKey("")
             .headers(ImmutableMap.of("testHeader", "KestraTest"))
             .from(uri.toString())
             .build();
@@ -137,7 +129,7 @@ class AMQPTest {
 
     @Test
     void createAndBindTest() throws Exception {
-        CreateExchange createExchange = CreateExchange.builder()
+        DeclareExchange declareExchange = DeclareExchange.builder()
             .uri("amqp://guest:guest@localhost:5672/my_vhost")
             .name("amqptests.exchange")
             .build();
@@ -152,7 +144,7 @@ class AMQPTest {
             .build();
 
 
-        CreateExchange.Output createExchangeOutput = createExchange.run(runContextFactory.of());
+        DeclareExchange.Output createExchangeOutput = declareExchange.run(runContextFactory.of());
         CreateQueue.Output createQueueOutput = createQueue.run(runContextFactory.of());
         QueueBind.Output queueBindOutput = queueBind.run(runContextFactory.of());
 
@@ -164,8 +156,7 @@ class AMQPTest {
 
     @BeforeAll
     void setUp() throws Exception {
-
-        CreateExchange createExchange = CreateExchange.builder()
+        DeclareExchange declareExchange = DeclareExchange.builder()
             .uri("amqp://guest:guest@localhost:5672/my_vhost")
             .name("kestramqp.exchange")
             .build();
@@ -179,7 +170,7 @@ class AMQPTest {
             .queue("kestramqp.queue")
             .build();
 
-        createExchange.run(runContextFactory.of());
+        declareExchange.run(runContextFactory.of());
         createQueue.run(runContextFactory.of());
         queueBind.run(runContextFactory.of());
     }

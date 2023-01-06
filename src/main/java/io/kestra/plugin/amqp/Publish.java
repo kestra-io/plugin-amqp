@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import javax.validation.constraints.NotNull;
@@ -30,18 +31,16 @@ import javax.validation.constraints.NotNull;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Publish a message to an AMQP exchange",
-    description = "Publish a message to an AMQP exchange, including specified headers"
+    title = "Publish a message to an AMQP exchange"
 )
 @Plugin(
     examples = {
         @Example(
             code = {
-                "type: io.kestra.plugin.amqp.Publish",
                 "uri:amqp://guest:guest@localhost:5672/my_vhost",
                 "exchange:kestramqp.exchange",
                 "headers:",
-                "   testHeader: KestraTest",
+                "  testHeader: KestraTest",
                 "from: My new message"
             }
         )
@@ -55,17 +54,16 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
     )
     private String exchange;
 
-    @Builder.Default
     @PluginProperty(dynamic = true)
     @Schema(
         title = "The routing key"
     )
-    private String routingKey = "";
+    private String routingKey;
 
     @Schema(
         title = "The name of the queue"
     )
-    private String expiration;
+    private Duration expiration;
 
     @Schema(
         title = "The properties to add in the headers"
@@ -78,6 +76,7 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
     private Integer deliveryMode;
 
     @Builder.Default
+    @PluginProperty(dynamic = true)
     @Schema(
         title = "The content type of the data published"
     )
@@ -161,8 +160,22 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
     private void publish(Channel channel, byte[] message, RunContext runContext) throws IOException, IllegalVariableEvaluationException {
         channel.basicPublish(
             runContext.render(this.exchange),
-            runContext.render(this.routingKey),
-            new AMQP.BasicProperties(this.contentType, "UTF-8", this.headers, this.deliveryMode, null, null, null, this.expiration, null, null, null, null, null, null),
+            this.routingKey == null ? "" : runContext.render(this.routingKey),
+            new AMQP.BasicProperties(
+                runContext.render(this.contentType),
+                "UTF-8", this.headers,
+                this.deliveryMode,
+                null,
+                null,
+                null,
+                this.expiration != null ? String.valueOf(this.expiration.toMillis()) : null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+            ),
             message
         );
     }

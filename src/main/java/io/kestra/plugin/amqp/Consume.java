@@ -17,7 +17,10 @@ import java.io.*;
 import java.net.URI;
 import java.time.Duration;
 import java.time.ZonedDateTime;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static io.kestra.core.utils.Rethrow.throwRunnable;
 
@@ -43,7 +46,6 @@ import static io.kestra.core.utils.Rethrow.throwRunnable;
     }
 )
 public class Consume extends AbstractAmqpConnection implements RunnableTask<Consume.Output>, ConsumeInterface {
-
     private String queue;
 
     @Builder.Default
@@ -74,6 +76,8 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
              Connection connection = factory.newConnection()) {
             Channel channel = connection.createChannel();
 
+            AtomicReference<Long> lastDeliveryTag = new AtomicReference<>();
+
             thread = new Thread(throwRunnable(() -> {
                 channel.basicConsume(
                     runContext.render(this.queue),
@@ -81,8 +85,12 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
                     this.consumerTag,
                     (consumerTag, message) -> {
                         Message msg = new Message(message.getBody(), serdeType, message.getProperties());
+
                         FileSerde.write(outputFile, msg);
                         total.getAndIncrement();
+
+                        lastDeliveryTag.set(message.getEnvelope().getDeliveryTag());
+
                     },
                     (consumerTag) -> {
                     }
@@ -96,10 +104,12 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
                 Thread.sleep(100);
             }
             channel.basicCancel(this.consumerTag);
-            channel.close();
-            while (channel.isOpen()) {
-                wait(100);
+
+            if (lastDeliveryTag.get() != null) {
+                channel.basicAck(lastDeliveryTag.get(), true);
             }
+
+            channel.close();
             thread.join();
 
             runContext.metric(Counter.of("records", total.get(), "queue", runContext.render(this.queue)));

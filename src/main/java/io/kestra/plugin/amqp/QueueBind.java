@@ -27,7 +27,6 @@ import java.util.Map;
     examples = {
         @Example(
             code = {
-                "type: io.kestra.plugin.amqp.QueueBind",
                 "uri: amqp://guest:guest@localhost:5672/my_vhost",
                 "exchange: kestramqp.exchange",
                 "queue: kestramqp.queue"
@@ -36,7 +35,6 @@ import java.util.Map;
     }
 )
 public class QueueBind extends AbstractAmqpConnection implements RunnableTask<QueueBind.Output> {
-
     @NotNull
     @PluginProperty(dynamic = true)
     @Schema(
@@ -51,12 +49,10 @@ public class QueueBind extends AbstractAmqpConnection implements RunnableTask<Qu
     )
     private String queue;
 
-    @NotNull
-    @Builder.Default
     @Schema(
         title = "The routing key to use for the binding."
     )
-    private String routingKey = "";
+    private String routingKey;
 
     @Schema(
         title = "Other properties (binding parameters)."
@@ -67,24 +63,30 @@ public class QueueBind extends AbstractAmqpConnection implements RunnableTask<Qu
     public Output run(RunContext runContext) throws Exception {
         ConnectionFactory factory = this.connectionFactory(runContext);
 
+        String queue = runContext.render(this.queue);
+        String exchange = runContext.render(this.exchange);
+
         try (Connection connection = factory.newConnection()) {
             Channel channel = connection.createChannel();
-            channel.queueBind(runContext.render(queue), runContext.render(exchange), routingKey, args);
+            channel.queueBind(queue, exchange, routingKey == null ? "" : runContext.render(routingKey), args);
             channel.close();
         }
 
-        return Output.builder().queue(runContext.render(queue)).exchange(runContext.render(exchange)).build();
+        return Output.builder()
+            .queue(queue)
+            .exchange(exchange)
+            .build();
     }
 
     @Builder
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
         @Schema(
-            title = "Queue name"
+            title = "The queue name"
         )
         private String queue;
         @Schema(
-            title = "Exchange name"
+            title = "The exchange name"
         )
         private String exchange;
     }

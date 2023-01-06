@@ -19,22 +19,19 @@ import java.util.Map;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Create an Exchange",
-    description = "Create an Exchange, including specified arguments"
+    title = "Create an Exchange"
 )
 @Plugin(
     examples = {
         @Example(
             code = {
-                "type: io.kestra.plugin.amqp.CreateExchange",
                 "uri: amqp://guest:guest@localhost:5672/my_vhost",
                 "name: kestramqp.exchange"
             }
         )
     }
 )
-public class CreateExchange extends AbstractAmqpConnection implements RunnableTask<CreateExchange.Output> {
-
+public class DeclareExchange extends AbstractAmqpConnection implements RunnableTask<DeclareExchange.Output> {
     @NotNull
     @PluginProperty(dynamic = true)
     @Schema(
@@ -75,14 +72,16 @@ public class CreateExchange extends AbstractAmqpConnection implements RunnableTa
     public Output run(RunContext runContext) throws Exception {
         ConnectionFactory factory = this.connectionFactory(runContext);
 
+        String exchange = runContext.render(name);
+
         try (Connection connection = factory.newConnection()) {
             Channel channel = connection.createChannel();
 
-            channel.exchangeDeclare(runContext.render(name), exchangeType, durability, autoDelete, internal, args);
+            channel.exchangeDeclare(exchange, exchangeType, durability, autoDelete, internal, args);
             channel.close();
         }
 
-        return Output.builder().exchange(runContext.render(name)).build();
+        return Output.builder().exchange(exchange).build();
     }
 
     @Builder

@@ -11,13 +11,14 @@ public interface ConsumeInterface {
     @NotNull
     @PluginProperty(dynamic = true)
     @Schema(
-        title = "The queue to pull messages from"
+        title = "The queue to pull messages from."
     )
     String getQueue();
 
     @Schema(
         title = "A client-generated consumer tag to establish context."
     )
+    @NotNull
     String getConsumerTag();
 
     @Schema(
@@ -32,5 +33,6 @@ public interface ConsumeInterface {
     )
     Duration getMaxDuration();
 
+    @NotNull
     SerdeType getSerdeType();
 }

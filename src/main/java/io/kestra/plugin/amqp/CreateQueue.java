@@ -28,7 +28,6 @@ import java.util.Map;
     examples = {
         @Example(
             code = {
-                "type: io.kestra.plugin.amqp.CreateQueue",
                 "uri: amqp://guest:guest@localhost:5672/my_vhost",
                 "name: kestramqp.queue"
             }
