@@ -11,5 +11,6 @@ public class AmqpExceptionHandler extends StrictExceptionHandler {
     @Override
     protected void log(String message, Throwable e) {
         logger.error(message, e);
+        throw new RuntimeException();
     }
 }

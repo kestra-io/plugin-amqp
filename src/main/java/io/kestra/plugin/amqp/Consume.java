@@ -81,6 +81,7 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
             Channel channel = connection.createChannel();
 
             AtomicReference<Long> lastDeliveryTag = new AtomicReference<>();
+            AtomicReference<Exception> threadException = new AtomicReference<>();
 
             Thread thread = new Thread(throwRunnable(() -> {
                 channel.basicConsume(
@@ -88,8 +89,12 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
                     false,
                     this.consumerTag,
                     (consumerTag, message) -> {
-                        Message msg = Message.of(message.getBody(), serdeType, message.getProperties());
-
+                        Message msg = null;
+                        try {
+                            msg = Message.of(message.getBody(), serdeType, message.getProperties());
+                        } catch (Exception e) {
+                            threadException.set(e);
+                        }
                         FileSerde.write(outputFile, msg);
                         total.getAndIncrement();
 
@@ -97,10 +102,8 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
 
                     },
                     (consumerTag) -> {
-                        logger.warn("CancelCallback: {}", consumerTag);
                     },
                     (consumerTag1, sig) -> {
-                        logger.warn("ConsumerShutdownSignalCallback: {} {}", consumerTag1, sig);
                     }
                 );
             }));
@@ -109,6 +112,12 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
             thread.start();
 
             while (!this.ended(total, started)) {
+                if (threadException.get() != null) {
+                    channel.basicCancel(this.consumerTag);
+                    channel.close();
+                    thread.join();
+                    throw threadException.get();
+                }
                 Thread.sleep(100);
             }
             channel.basicCancel(this.consumerTag);

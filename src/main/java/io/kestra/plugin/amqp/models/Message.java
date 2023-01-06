@@ -4,7 +4,6 @@ import com.rabbitmq.client.BasicProperties;
 import lombok.Builder;
 import lombok.Value;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
@@ -29,7 +28,7 @@ public class Message {
     String appId;
     Object data;
 
-    public static Message of(byte[] message, SerdeType serdeType, BasicProperties properties) throws IOException {
+    public static Message of(byte[] message, SerdeType serdeType, BasicProperties properties) throws Exception {
         return Message.builder()
             .data(serdeType.deserialize(message))
             .contentType(properties.getContentType())

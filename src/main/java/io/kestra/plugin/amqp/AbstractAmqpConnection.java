@@ -1,7 +1,6 @@
 package io.kestra.plugin.amqp;
 
 import com.rabbitmq.client.ConnectionFactory;
-import io.kestra.core.exceptions.IllegalVariableEvaluationException;
 import io.kestra.core.models.tasks.Task;
 import io.kestra.core.runners.RunContext;
 import lombok.EqualsAndHashCode;
@@ -11,7 +10,6 @@ import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 
 @SuperBuilder
 @ToString
@@ -21,7 +19,7 @@ import java.net.URISyntaxException;
 public abstract class AbstractAmqpConnection extends Task implements AmqpConnectionInterface {
     private String uri;
 
-    public ConnectionFactory connectionFactory(RunContext runContext) throws URISyntaxException, IllegalVariableEvaluationException {
+    public ConnectionFactory connectionFactory(RunContext runContext) throws Exception {
         URI amqpUri = new URI(runContext.render(uri));
 
         String auth = amqpUri.getUserInfo();
