@@ -17,6 +17,7 @@ import org.junit.jupiter.api.TestInstance;
 import java.io.*;
 import java.net.URI;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -39,10 +40,12 @@ class AMQPTest {
             .from(Arrays.asList(
                 JacksonMapper.toMap(Message.builder()
                     .headers(ImmutableMap.of("testHeader", "KestraTest"))
+                    .timestamp(Instant.now())
                     .data("value-1")
                     .build()),
                 JacksonMapper.toMap(Message.builder()
                     .appId("unit-kestra")
+                    .timestamp(Instant.now())
                     .data("value-2")
                     .build())
             ))
@@ -88,30 +91,6 @@ class AMQPTest {
     }
 
     @Test
-    void pushAsString() throws Exception {
-        Publish push = Publish.builder()
-            .uri("amqp://guest:guest@localhost:5672/my_vhost")
-            .exchange("kestramqp.exchange")
-            // .headers(ImmutableMap.of("testHeader", "KestraTest"))
-            .from("My new message")
-            .build();
-
-        Publish.Output pushOutput = push.run(runContextFactory.of());
-
-        assertThat(pushOutput.getMessagesCount(), is(1));
-
-        Consume consume = Consume.builder()
-            .uri("amqp://guest:guest@localhost:5672/my_vhost")
-            .queue("kestramqp.queue")
-            .maxDuration(Duration.ofSeconds(3))
-            .build();
-
-        Consume.Output pullOutput = consume.run(runContextFactory.of());
-        assertThat(pullOutput.getCount(), greaterThanOrEqualTo(1));
-
-    }
-
-    @Test
     void pushAsFile() throws Exception {
         URI uri = createTestFile(5);
 
@@ -153,7 +132,6 @@ class AMQPTest {
             .queue("amqptests.queue")
             .build();
 
-
         DeclareExchange.Output createExchangeOutput = declareExchange.run(runContextFactory.of());
         CreateQueue.Output createQueueOutput = createQueue.run(runContextFactory.of());
         QueueBind.Output queueBindOutput = queueBind.run(runContextFactory.of());
@@ -191,7 +169,12 @@ class AMQPTest {
         File tempFile = runContext.tempFile(".ion").toFile();
         OutputStream output = new FileOutputStream(tempFile);
         for (int i = 0; i < length; i++) {
-            FileSerde.write(output, i);
+            FileSerde.write(output,
+                JacksonMapper.toMap(Message.builder()
+                    .appId("unit-kestra")
+                    .timestamp(Instant.now())
+                    .data("value-" + i)
+                    .build()));
         }
         return storageInterface.put(URI.create("/" + IdUtils.create() + ".ion"), new FileInputStream(tempFile));
     }

@@ -11,7 +11,9 @@ import io.kestra.core.schedulers.AbstractScheduler;
 import io.kestra.core.schedulers.DefaultScheduler;
 import io.kestra.core.schedulers.SchedulerExecutionStateInterface;
 import io.kestra.core.schedulers.SchedulerTriggerStateInterface;
+import io.kestra.core.serializers.JacksonMapper;
 import io.kestra.core.utils.TestsUtils;
+import io.kestra.plugin.amqp.models.Message;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import jakarta.inject.Inject;
@@ -20,6 +22,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
@@ -77,8 +80,18 @@ class TriggerTest {
                 .type(Publish.class.getName())
                 .uri("amqp://guest:guest@localhost:5672/my_vhost")
                 .exchange("amqpTrigger.exchange")
-//                .headers(ImmutableMap.of("testHeader", "KestraTest"))
-                .from(Arrays.asList(new String[]{"value-1", "value-2"}))
+                .from(Arrays.asList(
+                    JacksonMapper.toMap(Message.builder()
+                        .headers(ImmutableMap.of("testHeader", "KestraTest"))
+                        .timestamp(Instant.now())
+                        .data("value-1")
+                        .build()),
+                    JacksonMapper.toMap(Message.builder()
+                        .appId("unit-kestra")
+                        .timestamp(Instant.now())
+                        .data("value-2")
+                        .build())
+                ))
                 .build();
 
             scheduler.run();

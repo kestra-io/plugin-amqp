@@ -44,7 +44,7 @@ public class Message {
             .correlationId(properties.getCorrelationId())
             .replyTo(properties.getReplyTo())
             .expiration(properties.getExpiration() != null ? Duration.ofMillis(Long.parseLong(properties.getExpiration())) : null)
-            .timestamp(properties.getTimestamp().toInstant())
+            .timestamp(properties.getTimestamp() != null ? properties.getTimestamp() .toInstant() : null)
             .type(properties.getType())
             .userId(properties.getUserId())
             .appId(properties.getAppId())

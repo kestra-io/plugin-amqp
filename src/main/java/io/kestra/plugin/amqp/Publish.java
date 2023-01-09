@@ -39,9 +39,14 @@ import javax.validation.constraints.NotNull;
             code = {
                 "uri:amqp://guest:guest@localhost:5672/my_vhost",
                 "exchange:kestramqp.exchange",
-                "headers:",
-                "  testHeader: KestraTest",
-                "from: My new message"
+                "from:",
+                "-  data: value-1",
+                "   headers:",
+                "       testHeader: KestraTest",
+                "   timestamp: '2023-01-09T08:46:33.103130753Z'",
+                "-  data: value-2",
+                "   timestamp: '2023-01-09T08:46:33.115456977Z'",
+                "   appId: unit-kestra"
             }
         )
     }
@@ -64,7 +69,7 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
     @NotNull
     @Schema(
         title = "The source of the data published",
-        description = "Can be an internal storage uri, list or a string. If the URI is malformed, it will be considered as a string."
+        description = "Can be an internal storage uri or a list."
     )
     private Object from;
 
@@ -130,8 +135,6 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
                 return 1;
             });
     }
-
-
 
 
     private Boolean isValidURI(String from) {

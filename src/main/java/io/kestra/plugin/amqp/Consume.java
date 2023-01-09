@@ -21,7 +21,6 @@ import java.time.ZonedDateTime;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static io.kestra.core.utils.Rethrow.throwBiConsumer;
 import static io.kestra.core.utils.Rethrow.throwRunnable;
 
 @SuperBuilder
@@ -60,7 +59,6 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
 
     @Override
     public Consume.Output run(RunContext runContext) throws Exception {
-        Logger logger = runContext.logger();
         ConnectionFactory factory = this.connectionFactory(runContext);
 
         AtomicInteger total = new AtomicInteger();
@@ -75,9 +73,6 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
         try (BufferedOutputStream outputFile = new BufferedOutputStream(new FileOutputStream(tempFile));
             Connection connection = factory.newConnection()) {
 
-            connection.addShutdownListener(cause -> {
-                logger.warn("addShutdownListener", cause);
-            });
             Channel channel = connection.createChannel();
 
             AtomicReference<Long> lastDeliveryTag = new AtomicReference<>();
