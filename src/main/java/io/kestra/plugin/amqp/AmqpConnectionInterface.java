@@ -11,5 +11,5 @@ public interface AmqpConnectionInterface {
     @Schema(
         title = "The connection string"
     )
-    String getUri();
+    String getUrl();
 }

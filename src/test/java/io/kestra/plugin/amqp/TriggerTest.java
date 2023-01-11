@@ -78,7 +78,7 @@ class TriggerTest {
             Publish task = Publish.builder()
                 .id(TriggerTest.class.getSimpleName())
                 .type(Publish.class.getName())
-                .uri("amqp://guest:guest@localhost:5672/my_vhost")
+                .url("amqp://guest:guest@localhost:5672/my_vhost")
                 .exchange("amqpTrigger.exchange")
                 .from(Arrays.asList(
                     JacksonMapper.toMap(Message.builder()
@@ -110,17 +110,16 @@ class TriggerTest {
 
     @BeforeAll
     void setUp() throws Exception {
-
         DeclareExchange declareExchange = DeclareExchange.builder()
-            .uri("amqp://guest:guest@localhost:5672/my_vhost")
+            .url("amqp://guest:guest@localhost:5672/my_vhost")
             .name("amqpTrigger.exchange")
             .build();
         CreateQueue createQueue = CreateQueue.builder()
-            .uri("amqp://guest:guest@localhost:5672/my_vhost")
+            .url("amqp://guest:guest@localhost:5672/my_vhost")
             .name("amqpTrigger.queue")
             .build();
         QueueBind queueBind = QueueBind.builder()
-            .uri("amqp://guest:guest@localhost:5672/my_vhost")
+            .url("amqp://guest:guest@localhost:5672/my_vhost")
             .exchange("amqpTrigger.exchange")
             .queue("amqpTrigger.queue")
             .build();
@@ -129,7 +128,5 @@ class TriggerTest {
         createQueue.run(runContextFactory.of());
         queueBind.run(runContextFactory.of());
     }
-
-
 }
 

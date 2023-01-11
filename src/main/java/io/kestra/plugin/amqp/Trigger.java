@@ -34,23 +34,18 @@ import java.util.Optional;
     examples = {
         @Example(
             code = {
-                "type: io.kestra.plugin.amqp.Trigger",
-                "uri: amqp://guest:guest@localhost:5672/my_vhost",
+                "url: amqp://guest:guest@localhost:5672/my_vhost",
                 "maxRecords: 2",
                 "queue: amqpTrigger.queue"
             }
         )
     }
 )
-public class Trigger extends AbstractTrigger implements PollingTriggerInterface, TriggerOutput<Consume.Output>, ConsumeInterface {
+public class Trigger extends AbstractTrigger implements PollingTriggerInterface, TriggerOutput<Consume.Output>, ConsumeInterface, AmqpConnectionInterface {
     @Builder.Default
     private final Duration interval = Duration.ofSeconds(60);
 
-    @Schema(
-        title = "The connection string"
-    )
-    @NotNull
-    private String uri;
+    private String url;
 
     private String queue;
 
@@ -70,11 +65,12 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
         Logger logger = runContext.logger();
 
         Consume task = Consume.builder()
-            .uri(this.uri)
+            .url(this.url)
             .queue(this.queue)
             .consumerTag(this.consumerTag)
-            .maxDuration(this.maxDuration)
             .maxRecords(this.maxRecords)
+            .maxDuration(this.maxDuration)
+            .serdeType(this.serdeType)
             .build();
 
         Consume.Output run = task.run(runContext);

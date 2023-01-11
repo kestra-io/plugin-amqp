@@ -17,10 +17,10 @@ import java.net.URI;
 @Getter
 @NoArgsConstructor
 public abstract class AbstractAmqpConnection extends Task implements AmqpConnectionInterface {
-    private String uri;
+    private String url;
 
     public ConnectionFactory connectionFactory(RunContext runContext) throws Exception {
-        URI amqpUri = new URI(runContext.render(uri));
+        URI amqpUri = new URI(runContext.render(url));
 
         String auth = amqpUri.getUserInfo();
         int pos = auth.indexOf(':');

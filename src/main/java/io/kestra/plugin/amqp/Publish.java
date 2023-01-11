@@ -37,8 +37,8 @@ import javax.validation.constraints.NotNull;
     examples = {
         @Example(
             code = {
-                "uri:amqp://guest:guest@localhost:5672/my_vhost",
-                "exchange:kestramqp.exchange",
+                "url: amqp://guest:guest@localhost:5672/my_vhost",
+                "exchange: kestramqp.exchange",
                 "from:",
                 "-  data: value-1",
                 "   headers:",

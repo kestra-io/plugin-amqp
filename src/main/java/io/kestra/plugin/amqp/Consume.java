@@ -36,8 +36,7 @@ import static io.kestra.core.utils.Rethrow.throwRunnable;
     examples = {
         @Example(
             code = {
-                "type: io.kestra.plugin.amqp.Consume",
-                "uri: amqp://guest:guest@localhost:5672/my_vhost",
+                "url: amqp://guest:guest@localhost:5672/my_vhost",
                 "queue: kestramqp.queue",
                 "maxRecords: 1000"
             }
@@ -48,14 +47,15 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
     private String queue;
 
     @Builder.Default
+    private SerdeType serdeType = SerdeType.STRING;
+
+    @Builder.Default
     private String consumerTag = "Kestra";
 
     private Integer maxRecords;
 
     private Duration maxDuration;
 
-    @Builder.Default
-    private SerdeType serdeType = SerdeType.STRING;
 
     @Override
     public Consume.Output run(RunContext runContext) throws Exception {

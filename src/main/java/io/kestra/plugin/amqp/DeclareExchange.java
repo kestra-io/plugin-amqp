@@ -25,7 +25,7 @@ import java.util.Map;
     examples = {
         @Example(
             code = {
-                "uri: amqp://guest:guest@localhost:5672/my_vhost",
+                "url: amqp://guest:guest@localhost:5672/my_vhost",
                 "name: kestramqp.exchange"
             }
         )
