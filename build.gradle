@@ -53,7 +53,7 @@ dependencies {
     compileOnly group: "io.kestra", name: "core", version: kestraVersion
 
     // amqp
-    api group: 'com.rabbitmq', name: 'amqp-client', version: '5.16.0'
+    api group: 'com.rabbitmq', name: 'amqp-client', version: '5.17.0'
 }
 
 
