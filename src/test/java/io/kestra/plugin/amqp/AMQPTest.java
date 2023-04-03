@@ -51,7 +51,7 @@ class AMQPTest {
                 JacksonMapper.toMap(Message.builder()
                     .appId("unit-kestra")
                     .timestamp(Instant.now())
-                    .data("value-2")
+                    .data("{{ \"apple\" ~ \"pear\" ~ \"banana\" }}")
                     .build())
             ))
             .build();

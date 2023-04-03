@@ -1,6 +1,9 @@
 package io.kestra.plugin.amqp;
 
-import com.rabbitmq.client.*;
+import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
 import io.kestra.core.exceptions.IllegalVariableEvaluationException;
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
@@ -18,12 +21,17 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
-import java.io.*;
+import javax.validation.constraints.NotNull;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.sql.Date;
 import java.util.List;
-import javax.validation.constraints.NotNull;
+import java.util.Map;
+
+import static io.kestra.core.utils.Rethrow.throwFunction;
 
 @SuperBuilder
 @ToString
@@ -69,7 +77,8 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
     @NotNull
     @Schema(
         title = "The source of the data published",
-        description = "Can be an internal storage uri or a list."
+        description = "Can be an internal storage uri or a list.",
+        anyOf = {String.class, List.class, Object.class}
     )
     private Object from;
 
@@ -103,8 +112,16 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
                 }
 
             } else if (this.from instanceof List) {
-                flowable = Flowable
-                    .fromArray(((List<Object>) this.from).toArray())
+                flowable = Flowable.fromArray(((List<?>) this.from).stream()
+                        .map(throwFunction(row -> {
+                            if (row instanceof Map) {
+                                return runContext.render((Map<String, Object>) row);
+                            } else if (row instanceof String) {
+                                return runContext.render((String) row);
+                            } else {
+                                return row;
+                            }
+                        })).toArray())
                     .map(o -> JacksonMapper.toMap(o, Message.class));
 
                 resultFlowable = this.buildFlowable(flowable, channel, runContext);
@@ -113,7 +130,7 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
                     .reduce(Integer::sum)
                     .blockingGet();
             } else {
-                publish(channel, JacksonMapper.toMap(this.from, Message.class), runContext);
+                publish(channel, JacksonMapper.toMap(runContext.render((Map<String, Object>) this.from), Message.class), runContext);
             }
 
             channel.close();
