@@ -112,16 +112,17 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
                 }
 
             } else if (this.from instanceof List) {
-                flowable = Flowable.fromArray(((List<?>) this.from).stream()
-                        .map(throwFunction(row -> {
-                            if (row instanceof Map) {
-                                return runContext.render((Map<String, Object>) row);
-                            } else if (row instanceof String) {
-                                return runContext.render((String) row);
-                            } else {
-                                return row;
-                            }
-                        })).toArray())
+                flowable = Flowable.fromArray(((List<?>) this.from)
+                    .stream()
+                    .map(throwFunction(row -> {
+                        if (row instanceof Map) {
+                            return runContext.render((Map<String, Object>) row);
+                        } else if (row instanceof String) {
+                            return runContext.render((String) row);
+                        } else {
+                            return row;
+                        }
+                    })).toArray())
                     .map(o -> JacksonMapper.toMap(o, Message.class));
 
                 resultFlowable = this.buildFlowable(flowable, channel, runContext);
