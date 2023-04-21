@@ -108,7 +108,8 @@ nexusPublishing {
 jar {
     manifest {
         attributes(
-                "X-Kestra-Title": project.name,
+                "X-Kestra-Name": project.name,
+                "X-Kestra-Title": "AMQP",
                 "X-Kestra-Group": project.group + ".amqp",
                 "X-Kestra-Description": project.description,
                 "X-Kestra-Version": project.version
@@ -119,8 +120,8 @@ jar {
 pom {
     developers {
         developer {
-            id "Lbo59"
-            name "Laurent Bocquet"
+            id "tchiotludo"
+            name "Ludovic Dehon"
         }
     }
 }
