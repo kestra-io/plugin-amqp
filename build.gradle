@@ -21,9 +21,11 @@ repositories {
     }
 }
 
-sourceCompatibility = 11
+sourceCompatibility = 17
+targetCompatibility = 17
+
 group "io.kestra.plugin"
-description 'AMQP template for Kestra'
+description 'Enhance Kestra workflows with AMQP messaging system integration.'
 
 tasks.withType(JavaCompile) {
     options.encoding = "UTF-8"
