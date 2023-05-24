@@ -35,9 +35,10 @@ public abstract class AbstractAmqpConnection extends Task implements AmqpConnect
 
         factory.setUsername(user);
         factory.setPassword(pass);
-
-        if (!amqpUri.getPath().equals("")) {
-            factory.setVirtualHost(amqpUri.getPath());
+        
+        String virtualHost = amqpUri.getPath();
+        if (virtualHost.length() > 1) {
+            factory.setVirtualHost(virtualHost.substring(1));
         }
 
         factory.setExceptionHandler(new AmqpExceptionHandler(runContext.logger()));
