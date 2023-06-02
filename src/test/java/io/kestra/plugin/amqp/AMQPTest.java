@@ -61,7 +61,11 @@ class AMQPTest {
         assertThat(pushOutput.getMessagesCount(), is(2));
 
         Consume consume = Consume.builder()
-            .url("amqp://guest:guest@localhost:5672/my_vhost")
+            .host("localhost")
+            .port("5672")
+            .username("guest")
+            .password("guest")
+            .virtualHost("/my_vhost")
             .queue("kestramqp.queue")
             .maxDuration(Duration.ofSeconds(3))
             .build();

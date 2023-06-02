@@ -46,6 +46,11 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
     private final Duration interval = Duration.ofSeconds(60);
 
     private String url;
+    private String host;
+    private String port;
+    private String username;
+    private String password;
+    private String virtualHost;
 
     private String queue;
 
@@ -66,6 +71,11 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
 
         Consume task = Consume.builder()
             .url(this.url)
+            .host(this.host)
+            .port(this.port)
+            .username(this.username)
+            .password(this.password)
+            .virtualHost(this.virtualHost)
             .queue(this.queue)
             .consumerTag(this.consumerTag)
             .maxRecords(this.maxRecords)
