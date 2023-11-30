@@ -4,6 +4,7 @@ import com.rabbitmq.client.ConnectionFactory;
 import io.kestra.core.exceptions.IllegalVariableEvaluationException;
 import io.kestra.core.models.tasks.Task;
 import io.kestra.core.runners.RunContext;
+import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -24,7 +25,9 @@ public abstract class AbstractAmqpConnection extends Task implements AmqpConnect
     private String port;
     private String username;
     private String password;
-    private String virtualHost;
+
+    @Builder.Default
+    private String virtualHost = "/";
 
     public ConnectionFactory connectionFactory(RunContext runContext) throws Exception {
         if (url != null) {
@@ -47,12 +50,16 @@ public abstract class AbstractAmqpConnection extends Task implements AmqpConnect
         URI amqpUri = new URI(runContext.render(url));
 
         host = amqpUri.getHost();
-        port = String.valueOf(amqpUri.getPort());
+        if (amqpUri.getPort() != -1) {
+            port = String.valueOf(amqpUri.getPort());
+        }
 
         String auth = amqpUri.getUserInfo();
-        int pos = auth.indexOf(':');
-        username = pos > 0 ? auth.substring(0, pos) : auth;
-        password = pos > 0 ? auth.substring(pos + 1) : "";
+        if (auth != null) {
+            int pos = auth.indexOf(':');
+            username = pos > 0 ? auth.substring(0, pos) : auth;
+            password = pos > 0 ? auth.substring(pos + 1) : "";
+        }
 
         if (!amqpUri.getPath().equals("")) {
             virtualHost = amqpUri.getPath();
