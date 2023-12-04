@@ -4,7 +4,7 @@ import com.rabbitmq.client.ConnectionFactory;
 import io.kestra.core.exceptions.IllegalVariableEvaluationException;
 import io.kestra.core.models.tasks.Task;
 import io.kestra.core.runners.RunContext;
-import lombok.Builder;
+import java.util.Optional;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -25,9 +25,7 @@ public abstract class AbstractAmqpConnection extends Task implements AmqpConnect
     private String port;
     private String username;
     private String password;
-
-    @Builder.Default
-    private String virtualHost = "/";
+    private String virtualHost;
 
     public ConnectionFactory connectionFactory(RunContext runContext) throws Exception {
         if (url != null) {
@@ -35,11 +33,11 @@ public abstract class AbstractAmqpConnection extends Task implements AmqpConnect
         }
 
         ConnectionFactory factory = new ConnectionFactory();
-        factory.setHost(runContext.render(host));
-        factory.setPort(Integer.parseInt(runContext.render(port)));
-        factory.setUsername(runContext.render(username));
-        factory.setPassword(runContext.render(password));
-        factory.setVirtualHost(runContext.render(virtualHost));
+        Optional.ofNullable(runContext.render(host)).ifPresent(factory::setHost);
+        Optional.ofNullable(runContext.render(port)).map(Integer::parseInt).ifPresent(factory::setPort);
+        Optional.ofNullable(runContext.render(username)).ifPresent(factory::setUsername);
+        Optional.ofNullable(runContext.render(password)).ifPresent(factory::setPassword);
+        Optional.ofNullable(runContext.render(virtualHost)).ifPresent(factory::setVirtualHost);
 
         factory.setExceptionHandler(new AmqpExceptionHandler(runContext.logger()));
 
@@ -61,7 +59,7 @@ public abstract class AbstractAmqpConnection extends Task implements AmqpConnect
             password = pos > 0 ? auth.substring(pos + 1) : "";
         }
 
-        if (!amqpUri.getPath().equals("")) {
+        if (!amqpUri.getPath().isEmpty()) {
             virtualHost = amqpUri.getPath();
         }
     }
