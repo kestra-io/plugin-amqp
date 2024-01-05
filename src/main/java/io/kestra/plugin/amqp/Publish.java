@@ -15,13 +15,14 @@ import io.kestra.core.serializers.FileSerde;
 import io.kestra.core.serializers.JacksonMapper;
 import io.kestra.plugin.amqp.models.Message;
 import io.kestra.plugin.amqp.models.SerdeType;
-import io.reactivex.BackpressureStrategy;
-import io.reactivex.Flowable;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 import jakarta.validation.constraints.NotNull;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -93,8 +94,8 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
             Channel channel = connection.createChannel();
 
             Integer count = 1;
-            Flowable<Message> flowable;
-            Flowable<Integer> resultFlowable;
+            Flux<Message> flowable;
+            Flux<Integer> resultFlowable;
 
             if (this.from instanceof String) {
                 if (!isValidURI((String) this.from)) {
@@ -103,16 +104,16 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
 
                 URI from = new URI(runContext.render((String) this.from));
                 try (BufferedReader inputStream = new BufferedReader(new InputStreamReader(runContext.uriToInputStream(from)))) {
-                    flowable = Flowable.create(FileSerde.reader(inputStream, Message.class), BackpressureStrategy.BUFFER);
+                    flowable = Flux.create(FileSerde.reader(inputStream, Message.class), FluxSink.OverflowStrategy.BUFFER);
                     resultFlowable = this.buildFlowable(flowable, channel, runContext);
 
                     count = resultFlowable
                         .reduce(Integer::sum)
-                        .blockingGet();
+                        .block();
                 }
 
             } else if (this.from instanceof List) {
-                flowable = Flowable.fromArray(((List<?>) this.from)
+                flowable = Flux.fromArray(((List<?>) this.from)
                     .stream()
                     .map(throwFunction(row -> {
                         if (row instanceof Map) {
@@ -129,7 +130,7 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
 
                 count = resultFlowable
                     .reduce(Integer::sum)
-                    .blockingGet();
+                    .block();
             } else {
                 publish(channel, JacksonMapper.toMap(runContext.render((Map<String, Object>) this.from), Message.class), runContext);
             }
@@ -146,12 +147,12 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
     }
 
 
-    private Flowable<Integer> buildFlowable(Flowable<Message> flowable, Channel channel, RunContext runContext) {
+    private Flux<Integer> buildFlowable(Flux<Message> flowable, Channel channel, RunContext runContext) throws Exception {
         return flowable
-            .map(message -> {
+            .map(throwFunction(message -> {
                 publish(channel, message, runContext);
                 return 1;
-            });
+            }));
     }
 
 
