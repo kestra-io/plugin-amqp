@@ -8,7 +8,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 @Schema(
-    title = "Serializer / Deserializer used for the message"
+    title = "Serializer / Deserializer used for the message."
 )
 public enum SerdeType {
     STRING,

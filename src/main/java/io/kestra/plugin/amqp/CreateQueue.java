@@ -21,8 +21,8 @@ import java.util.Map;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Create a Queue",
-    description = "Create a Queue, including specified arguments"
+    title = "Create a queue.",
+    description = "Create a queue, including specified arguments."
 )
 @Plugin(
     examples = {
@@ -39,30 +39,30 @@ public class CreateQueue extends AbstractAmqpConnection implements RunnableTask<
     @NotNull
     @PluginProperty(dynamic = true)
     @Schema(
-        title = "The name of the queue"
+        title = "The name of the queue."
     )
     private String name;
 
     @Builder.Default
     @Schema(
-        title = "True if we are declaring a durable queue (the queue will survive a server restart)"
+        title = "Specify if we are declaring a durable queue (the queue will survive a server restart)."
     )
     private boolean durability = true;
 
     @Builder.Default
     @Schema(
-        title = "True if we are declaring an exclusive queue (restricted to this connection)"
+        title = "Specify if we are declaring an exclusive queue (restricted to this connection)."
     )
     private boolean exclusive = false;
 
     @Builder.Default
     @Schema(
-        title = "True if we are declaring an autodelete queue (server will delete it when no longer in use)"
+        title = "Specify if we are declaring an auto-delete queue (server will delete it when no longer in use)."
     )
     private boolean autoDelete = false;
 
     @Schema(
-        title = "Other properties (construction arguments) for the queue"
+        title = "Other properties (construction arguments) for the queue."
     )
     private Map<String, Object> args;
 
@@ -84,7 +84,7 @@ public class CreateQueue extends AbstractAmqpConnection implements RunnableTask<
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
         @Schema(
-            title = "Queue name"
+            title = "The queue name."
         )
         private String queue;
     }

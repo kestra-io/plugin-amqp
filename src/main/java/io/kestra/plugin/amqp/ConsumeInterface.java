@@ -22,13 +22,13 @@ public interface ConsumeInterface {
     String getConsumerTag();
 
     @Schema(
-        title = "The max number of rows to fetch before stopping.",
+        title = "The maximum number of rows to fetch before stopping.",
         description = "It's not an hard limit and is evaluated every second."
     )
     Integer getMaxRecords();
 
     @Schema(
-        title = "The max duration waiting for new rows.",
+        title = "The maximum duration to wait for new rows.",
         description = "It's not an hard limit and is evaluated every second."
     )
     Duration getMaxDuration();

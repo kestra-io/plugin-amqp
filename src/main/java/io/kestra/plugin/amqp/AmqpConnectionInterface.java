@@ -13,31 +13,31 @@ public interface AmqpConnectionInterface {
 
     @PluginProperty(dynamic = true)
     @Schema(
-        title = "The broker host"
+        title = "The broker host."
     )
     String getHost();
 
     @PluginProperty(dynamic = true)
     @Schema(
-        title = "The broker port"
+        title = "The broker port."
     )
     String getPort();
 
     @PluginProperty(dynamic = true)
     @Schema(
-        title = "The broker virtual host"
+        title = "The broker virtual host."
     )
     String getVirtualHost();
 
     @PluginProperty(dynamic = true)
     @Schema(
-        title = "The broker username"
+        title = "The broker username."
     )
     String getUsername();
 
     @PluginProperty(dynamic = true)
     @Schema(
-        title = "The broker password"
+        title = "The broker password."
     )
     String getPassword();
 }

@@ -28,7 +28,7 @@ import java.util.Optional;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Wait for message in AMQP queue"
+    title = "Wait for message in AMQP queue."
 )
 @Plugin(
     examples = {
