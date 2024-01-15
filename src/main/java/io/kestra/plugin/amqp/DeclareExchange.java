@@ -19,7 +19,7 @@ import java.util.Map;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Create an Exchange"
+    title = "Create an exchange."
 )
 @Plugin(
     examples = {
@@ -35,36 +35,36 @@ public class DeclareExchange extends AbstractAmqpConnection implements RunnableT
     @NotNull
     @PluginProperty(dynamic = true)
     @Schema(
-        title = "The name of the exchange"
+        title = "The name of the exchange."
     )
     private String name;
 
     @Builder.Default
     @Schema(
-        title = "The exchange type"
+        title = "The exchange type."
     )
     private BuiltinExchangeType exchangeType = BuiltinExchangeType.DIRECT;
 
     @Builder.Default
     @Schema(
-        title = "True if we are declaring a durable exchange (the exchange will survive a server restart)"
+        title = "Specify if we are declaring a durable exchange (the exchange will survive a server restart)."
     )
     private boolean durability = true;
 
     @Builder.Default
     @Schema(
-        title = "True if the server should delete the exchange when it is no longer in use"
+        title = "Specify if the server should delete the exchange when it is no longer in use."
     )
     private boolean autoDelete = false;
 
     @Builder.Default
     @Schema(
-        title = "True if the exchange is internal, i.e. can't be directly published to by a client."
+        title = "Specify if the exchange is internal, i.e. can't be directly published to by a client."
     )
     private boolean internal = false;
 
     @Schema(
-        title = "Other properties (construction arguments) for the exchange"
+        title = "Other properties (construction arguments) for the exchange."
     )
     private Map<String, Object> args;
 
@@ -88,7 +88,7 @@ public class DeclareExchange extends AbstractAmqpConnection implements RunnableT
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
         @Schema(
-            title = "Exchange name"
+            title = "The exchange name."
         )
         private String exchange;
     }

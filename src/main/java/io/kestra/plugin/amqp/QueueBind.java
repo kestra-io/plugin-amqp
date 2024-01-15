@@ -21,7 +21,7 @@ import java.util.Map;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Bind a Queue to an Exchange."
+    title = "Bind a queue to an exchange."
 )
 @Plugin(
     examples = {
@@ -82,11 +82,11 @@ public class QueueBind extends AbstractAmqpConnection implements RunnableTask<Qu
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
         @Schema(
-            title = "The queue name"
+            title = "The queue name."
         )
         private String queue;
         @Schema(
-            title = "The exchange name"
+            title = "The exchange name."
         )
         private String exchange;
     }
