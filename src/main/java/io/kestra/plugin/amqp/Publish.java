@@ -39,7 +39,7 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Publish a message to an AMQP exchange"
+    title = "Publish a message to an AMQP exchange."
 )
 @Plugin(
     examples = {
@@ -76,8 +76,8 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
     @PluginProperty(dynamic = true)
     @NotNull
     @Schema(
-        title = "The source of the data published",
-        description = "Can be an internal storage uri or a list.",
+        title = "The source of the data published.",
+        description = "It can be an Kestra's internal storage URI or a list.",
         anyOf = {String.class, List.class, Object.class}
     )
     private Object from;
@@ -193,7 +193,7 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
         @io.swagger.v3.oas.annotations.media.Schema(
-            title = "Number of message published"
+            title = "Number of messages published."
         )
         private final Integer messagesCount;
     }
