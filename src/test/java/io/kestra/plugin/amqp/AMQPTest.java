@@ -81,10 +81,9 @@ class AMQPTest {
     }
 
     @Test
-    void createConnectionFactoryWithUriAndFields() throws Exception {
+    void createConnectionFactoryWithUriAndFieldsButNoHost() throws Exception {
         Publish push = Publish.builder()
-                .url("amqp://example.org") // values extracted from the URI are considered first
-                .host("ignore.it")
+                .url("amqp://example.org")
                 .port("12345")
                 .username("kestra")
                 .password("K3str4")
@@ -97,6 +96,16 @@ class AMQPTest {
         assertThat(connectionFactory.getUsername(), is("kestra"));
         assertThat(connectionFactory.getPassword(), is("K3str4"));
         assertThat(connectionFactory.getVirtualHost(), is("/my_vhost"));
+    }
+
+    @Test
+    void createConnectionFactoryWithUriAndHostBothDefined() {
+        Publish push = Publish.builder()
+                .url("amqp://example.org")
+                .host("ignore.it")
+                .build();
+
+        assertThrows(IllegalArgumentException.class, () -> push.connectionFactory(runContextFactory.of()));
     }
 
     @Test

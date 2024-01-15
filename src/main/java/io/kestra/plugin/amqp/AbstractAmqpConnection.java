@@ -28,6 +28,9 @@ public abstract class AbstractAmqpConnection extends Task implements AmqpConnect
     private String virtualHost;
 
     public ConnectionFactory connectionFactory(RunContext runContext) throws Exception {
+        if (url != null && host != null) {
+            throw new IllegalArgumentException("Cannot define both `url` and `host`");
+        }
         if (url != null) {
             parseFromUrl(runContext, url);
         }
