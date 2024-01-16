@@ -2,6 +2,7 @@ package io.kestra.plugin.amqp;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.google.common.collect.ImmutableMap;
+import com.rabbitmq.client.ConnectionFactory;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.runners.RunContextFactory;
 import io.kestra.core.serializers.FileSerde;
@@ -21,8 +22,6 @@ import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -36,6 +35,78 @@ class AMQPTest {
 
     @Inject
     protected StorageInterface storageInterface;
+
+    @Test
+    void createConnectionFactoryWithDefaultValues() throws Exception {
+        Publish push = Publish.builder().build();
+
+        ConnectionFactory connectionFactory = push.connectionFactory(runContextFactory.of());
+        assertThat(connectionFactory.getHost(), is(ConnectionFactory.DEFAULT_HOST));
+        assertThat(connectionFactory.getPort(), is(ConnectionFactory.DEFAULT_AMQP_PORT));
+        assertThat(connectionFactory.getUsername(), is(ConnectionFactory.DEFAULT_USER));
+        assertThat(connectionFactory.getPassword(), is(ConnectionFactory.DEFAULT_PASS));
+        assertThat(connectionFactory.getVirtualHost(), is(ConnectionFactory.DEFAULT_VHOST));
+    }
+
+    @Test
+    void createConnectionFactoryWithUriOnly() throws Exception {
+        Publish push = Publish.builder()
+                .url("amqp://kestra:K3str4@example.org:12345/my_vhost")
+                .build();
+
+        ConnectionFactory connectionFactory = push.connectionFactory(runContextFactory.of());
+        assertThat(connectionFactory.getHost(), is("example.org"));
+        assertThat(connectionFactory.getPort(), is(12345));
+        assertThat(connectionFactory.getUsername(), is("kestra"));
+        assertThat(connectionFactory.getPassword(), is("K3str4"));
+        assertThat(connectionFactory.getVirtualHost(), is("/my_vhost"));
+    }
+
+    @Test
+    void createConnectionFactoryWithFieldsOnly() throws Exception {
+        Publish push = Publish.builder()
+                .host("example.org")
+                .port("12345")
+                .username("kestra")
+                .password("K3str4")
+                .virtualHost("/my_vhost")
+                .build();
+
+        ConnectionFactory connectionFactory = push.connectionFactory(runContextFactory.of());
+        assertThat(connectionFactory.getHost(), is("example.org"));
+        assertThat(connectionFactory.getPort(), is(12345));
+        assertThat(connectionFactory.getUsername(), is("kestra"));
+        assertThat(connectionFactory.getPassword(), is("K3str4"));
+        assertThat(connectionFactory.getVirtualHost(), is("/my_vhost"));
+    }
+
+    @Test
+    void createConnectionFactoryWithUriAndFieldsButNoHost() throws Exception {
+        Publish push = Publish.builder()
+                .url("amqp://example.org")
+                .port("12345")
+                .username("kestra")
+                .password("K3str4")
+                .virtualHost("/my_vhost")
+                .build();
+
+        ConnectionFactory connectionFactory = push.connectionFactory(runContextFactory.of());
+        assertThat(connectionFactory.getHost(), is("example.org"));
+        assertThat(connectionFactory.getPort(), is(12345));
+        assertThat(connectionFactory.getUsername(), is("kestra"));
+        assertThat(connectionFactory.getPassword(), is("K3str4"));
+        assertThat(connectionFactory.getVirtualHost(), is("/my_vhost"));
+    }
+
+    @Test
+    void createConnectionFactoryWithUriAndHostBothDefined() {
+        Publish push = Publish.builder()
+                .url("amqp://example.org")
+                .host("ignore.it")
+                .build();
+
+        assertThrows(IllegalArgumentException.class, () -> push.connectionFactory(runContextFactory.of()));
+    }
 
     @Test
     void pushAsList() throws Exception {
