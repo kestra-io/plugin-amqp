@@ -11,14 +11,13 @@ import io.kestra.core.models.triggers.PollingTriggerInterface;
 import io.kestra.core.models.triggers.TriggerContext;
 import io.kestra.core.models.triggers.TriggerOutput;
 import io.kestra.core.runners.RunContext;
-import io.kestra.core.utils.IdUtils;
 import io.kestra.plugin.amqp.models.SerdeType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.slf4j.Logger;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
 import java.util.Optional;
 
