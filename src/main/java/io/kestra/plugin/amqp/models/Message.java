@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 @Value
 @Builder
 
-public class Message {
+public class Message implements io.kestra.core.models.tasks.Output {
     String contentType;
     String contentEncoding;
     Map<String, Object> headers;
