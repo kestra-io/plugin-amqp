@@ -1,26 +1,10 @@
 package io.kestra.plugin.amqp;
 
-import io.kestra.core.models.annotations.PluginProperty;
-import io.kestra.plugin.amqp.models.SerdeType;
 import io.swagger.v3.oas.annotations.media.Schema;
 
-import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
 
-public interface ConsumeInterface {
-    @NotNull
-    @PluginProperty(dynamic = true)
-    @Schema(
-        title = "The queue to pull messages from."
-    )
-    String getQueue();
-
-    @Schema(
-        title = "A client-generated consumer tag to establish context."
-    )
-    @NotNull
-    String getConsumerTag();
-
+public interface ConsumeInterface extends ConsumeBaseInterface {
     @Schema(
         title = "The maximum number of rows to fetch before stopping.",
         description = "It's not an hard limit and is evaluated every second."
@@ -32,7 +16,4 @@ public interface ConsumeInterface {
         description = "It's not an hard limit and is evaluated every second."
     )
     Duration getMaxDuration();
-
-    @NotNull
-    SerdeType getSerdeType();
 }
