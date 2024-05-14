@@ -103,7 +103,7 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
                 }
 
                 URI from = new URI(runContext.render((String) this.from));
-                try (BufferedReader inputStream = new BufferedReader(new InputStreamReader(runContext.uriToInputStream(from)))) {
+                try (BufferedReader inputStream = new BufferedReader(new InputStreamReader(runContext.storage().getFile(from)))) {
                     flowable = Flux.create(FileSerde.reader(inputStream, Message.class), FluxSink.OverflowStrategy.BUFFER);
                     resultFlowable = this.buildFlowable(flowable, channel, runContext);
 
