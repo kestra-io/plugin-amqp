@@ -127,10 +127,7 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
                     } finally {
                         fluxSink.complete();
                     }
-                },
-                FluxSink.OverflowStrategy.BUFFER
-            )
-            .subscribeOn(Schedulers.boundedElastic());
+                });
     }
 
     @SuppressWarnings("RedundantIfStatement")
