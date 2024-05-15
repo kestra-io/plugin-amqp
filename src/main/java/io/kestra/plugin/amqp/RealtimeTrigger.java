@@ -32,7 +32,8 @@ import java.time.Duration;
                 "queue: amqpTrigger.queue"
             }
         )
-    }
+    },
+    beta = true
 )
 public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerInterface, TriggerOutput<Message>, ConsumeBaseInterface, AmqpConnectionInterface {
     @Builder.Default
