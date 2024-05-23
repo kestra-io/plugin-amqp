@@ -104,32 +104,6 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
         }
     }
 
-    public Publisher<Message> stream(RunContext runContext) {
-        return Flux.<Message>create(
-                fluxSink -> {
-                    try {
-                        ConnectionFactory factory = this.connectionFactory(runContext);
-
-                        try (
-                            ConsumeThread thread = new ConsumeThread(
-                                factory,
-                                runContext,
-                                this,
-                                throwConsumer(fluxSink::next),
-                                () -> false
-                            );
-                        ) {
-                            thread.start();
-                            thread.join();
-                        }
-                    } catch (Throwable e) {
-                        fluxSink.error(e);
-                    } finally {
-                        fluxSink.complete();
-                    }
-                });
-    }
-
     @SuppressWarnings("RedundantIfStatement")
     private boolean ended(AtomicInteger count, ZonedDateTime start) {
         if (this.maxRecords != null && count.get() >= this.maxRecords) {
