@@ -5,7 +5,6 @@ triggers:
   - id: watch
     type: io.kestra.plugin.amqp.RealtimeTrigger
     url: amqp://guest:guest@localhost:5672/my_vhost
-    maxRecords: 2
     queue: amqpTrigger.queue
 
 
