@@ -42,7 +42,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "React to and consume messages from an AMQP queue creating one executions for each message."
+    title = "Consume a message in real-time from a AMQP queue via change data capture and create one execution per message."
 )
 @Plugin(
     examples = {
@@ -57,9 +57,6 @@ import java.util.concurrent.atomic.AtomicReference;
     beta = true
 )
 public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerInterface, TriggerOutput<Message>, ConsumeBaseInterface, AmqpConnectionInterface {
-    @Builder.Default
-    private final Duration interval = Duration.ofSeconds(60);
-
     private String url;
     private String host;
     private String port;

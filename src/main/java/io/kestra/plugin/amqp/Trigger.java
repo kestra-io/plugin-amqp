@@ -21,7 +21,7 @@ import java.util.Optional;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Wait for message in AMQP queue."
+    title = "Consume messages periodically from a AMQP queue and create one execution per batch."
 )
 @Plugin(
     examples = {
