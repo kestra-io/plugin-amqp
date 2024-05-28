@@ -53,8 +53,7 @@ import java.util.concurrent.atomic.AtomicReference;
                 "queue: amqpTrigger.queue"
             }
         )
-    },
-    beta = true
+    }
 )
 public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerInterface, TriggerOutput<Message>, ConsumeBaseInterface, AmqpConnectionInterface {
     private String url;
