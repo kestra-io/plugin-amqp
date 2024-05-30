@@ -42,16 +42,27 @@ import java.util.concurrent.atomic.AtomicReference;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Consume a message in real-time from a AMQP queue via change data capture and create one execution per message."
+    title = "Consume a message in real-time from a AMQP queue via change data capture and create one execution per message.",
+    description = "If you would like to consume multiple messages processed within a given time frame and process them in batch, you can use the [io.kestra.plugin.amqp.Trigger](https://kestra.io/plugins/plugin-amqp/triggers/io.kestra.plugin.amqp.trigger) instead."
 )
 @Plugin(
     examples = {
         @Example(
-            code = {
-                "url: amqp://guest:guest@localhost:5672/my_vhost",
-                "maxRecords: 2",
-                "queue: amqpTrigger.queue"
-            }
+            title = "Consume a message from a AMQP queue in real-time.",
+            full = true,
+            code = """
+                id: amqp
+                namespace: dev
+
+                tasks:
+                - id: log
+                  type: io.kestra.plugin.core.log.Log
+                  message: "{{ trigger.value }}"
+
+                triggers:
+                - id: realtime_trigger
+                  url: amqp://guest:guest@localhost:5672/my_vhost
+                  queue: amqpTrigger.queue"""
         )
     }
 )
