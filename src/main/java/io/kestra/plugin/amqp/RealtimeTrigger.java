@@ -61,6 +61,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
                 triggers:
                 - id: realtime_trigger
+                  type: io.kestra.plugin.amqp.RealtimeTrigger
                   url: amqp://guest:guest@localhost:5672/my_vhost
                   queue: amqpTrigger.queue"""
         )
