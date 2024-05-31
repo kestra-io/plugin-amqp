@@ -29,8 +29,6 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 
 import java.io.IOException;
-import java.time.Duration;
-import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -57,13 +55,14 @@ import java.util.concurrent.atomic.AtomicReference;
                 tasks:
                 - id: log
                   type: io.kestra.plugin.core.log.Log
-                  message: "{{ trigger.value }}"
+                  message: "{{ trigger.data }}"
 
                 triggers:
                 - id: realtime_trigger
                   type: io.kestra.plugin.amqp.RealtimeTrigger
                   url: amqp://guest:guest@localhost:5672/my_vhost
-                  queue: amqpTrigger.queue"""
+                  queue: amqpTrigger.queue
+                  """
         )
     }
 )
@@ -162,7 +161,8 @@ public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerI
                         consumerTag,
                         deliverCallback,
                         cancelCallback,
-                        (tag, sig) -> {}
+                        (tag, sig) -> {
+                        }
                     );
 
                     // wait for consumer to be stopped
