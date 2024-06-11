@@ -78,7 +78,7 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
     @NotNull
     @Schema(
         title = "The source of the data published.",
-        description = "It can be an Kestra's internal storage URI or a list.",
+        description = "It can be a Kestra's internal storage URI or a list.",
         anyOf = {String.class, List.class, Object.class}
     )
     private Object from;
@@ -97,12 +97,14 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
             Flux<Message> flowable;
             Flux<Integer> resultFlowable;
 
-            if (this.from instanceof String) {
-                if (!isValidURI((String) this.from)) {
-                    throw new Exception("Invalid from parameter, must be a Kestra internal storage uri");
+            if (this.from instanceof String fromStr) {
+                String renderedFrom = runContext.render(fromStr);
+                URI from = new URI(renderedFrom);
+
+                if (!from.getScheme().equals("kestra")) {
+                    throw new Exception("Invalid 'from' parameter, must be a Kestra internal storage URI");
                 }
 
-                URI from = new URI(runContext.render((String) this.from));
                 try (BufferedReader inputStream = new BufferedReader(new InputStreamReader(runContext.storage().getFile(from)))) {
                     flowable = Flux.create(FileSerde.reader(inputStream, Message.class), FluxSink.OverflowStrategy.BUFFER);
                     resultFlowable = this.buildFlowable(flowable, channel, runContext);
@@ -153,17 +155,6 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
                 publish(channel, message, runContext);
                 return 1;
             }));
-    }
-
-
-    private Boolean isValidURI(String from) {
-        try {
-            URI uri = new URI(from);
-
-            return uri.getScheme().equals("kestra");
-        } catch (URISyntaxException e) {
-            return false;
-        }
     }
 
     private void publish(Channel channel, Message message, RunContext runContext) throws IOException, IllegalVariableEvaluationException {
