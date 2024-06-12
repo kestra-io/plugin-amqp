@@ -18,7 +18,7 @@ class RealtimeTriggerTest extends AbstractTriggerTest {
         CountDownLatch queueCount = new CountDownLatch(4);
         List<Execution> executionList = new CopyOnWriteArrayList<>();
 
-        executionQueue.receive(RealtimeTriggerTest.class, execution -> {
+        executionQueue.receive(execution -> {
             executionList.add(execution.getLeft());
 
             queueCount.countDown();

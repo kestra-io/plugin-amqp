@@ -9,7 +9,6 @@ import io.kestra.core.runners.FlowListeners;
 import io.kestra.core.runners.RunContextFactory;
 import io.kestra.core.runners.Worker;
 import io.kestra.core.schedulers.AbstractScheduler;
-import io.kestra.core.schedulers.SchedulerTriggerStateInterface;
 import io.kestra.core.serializers.JacksonMapper;
 import io.kestra.core.utils.IdUtils;
 import io.kestra.core.utils.TestsUtils;
@@ -42,9 +41,6 @@ abstract class AbstractTriggerTest {
 
     @Inject
     protected RunContextFactory runContextFactory;
-
-    @Inject
-    private SchedulerTriggerStateInterface triggerState;
 
     @Inject
     @Named(QueueFactoryInterface.EXECUTION_NAMED)
