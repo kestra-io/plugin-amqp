@@ -9,14 +9,14 @@ import io.kestra.core.runners.FlowListeners;
 import io.kestra.core.runners.RunContextFactory;
 import io.kestra.core.runners.Worker;
 import io.kestra.core.schedulers.AbstractScheduler;
-import io.kestra.core.schedulers.DefaultScheduler;
 import io.kestra.core.schedulers.SchedulerTriggerStateInterface;
 import io.kestra.core.serializers.JacksonMapper;
 import io.kestra.core.utils.IdUtils;
 import io.kestra.core.utils.TestsUtils;
+import io.kestra.jdbc.runner.JdbcScheduler;
 import io.kestra.plugin.amqp.models.Message;
 import io.micronaut.context.ApplicationContext;
-import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
+import io.kestra.core.junit.annotations.KestraTest;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
 import org.junit.jupiter.api.BeforeAll;
@@ -28,7 +28,7 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Objects;
 
-@MicronautTest
+@KestraTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 abstract class AbstractTriggerTest {
     @Inject
@@ -71,9 +71,9 @@ abstract class AbstractTriggerTest {
         queueBind.run(runContextFactory.of());
     }
 
-    protected void run(String filename, Runnable runnable) throws IOException, URISyntaxException, InterruptedException {
+    protected void run(String filename, Runnable runnable) throws IOException, URISyntaxException {
         try (
-            AbstractScheduler scheduler = new DefaultScheduler(this.applicationContext, this.flowListenersService, this.triggerState);
+            AbstractScheduler scheduler = new JdbcScheduler(this.applicationContext, this.flowListenersService);
             Worker worker = applicationContext.createBean(Worker.class, IdUtils.create(), 8, null);
         ) {
             worker.run();
