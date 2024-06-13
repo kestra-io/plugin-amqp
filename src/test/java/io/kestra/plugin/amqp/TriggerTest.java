@@ -1,11 +1,12 @@
 package io.kestra.plugin.amqp;
 
 import io.kestra.core.models.executions.Execution;
+import io.kestra.core.utils.TestsUtils;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Flux;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static io.kestra.core.utils.Rethrow.throwRunnable;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -16,11 +17,8 @@ class TriggerTest extends AbstractTriggerTest {
     @Test
     void flow() throws Exception {
         CountDownLatch queueCount = new CountDownLatch(1);
-        AtomicReference<Execution> last = new AtomicReference<>();
 
-        executionQueue.receive(execution -> {
-            last.set(execution.getLeft());
-
+        Flux<Execution> receive = TestsUtils.receive(executionQueue, execution -> {
             queueCount.countDown();
             assertThat(execution.getLeft().getFlowId(), is("trigger"));
         });
@@ -28,9 +26,10 @@ class TriggerTest extends AbstractTriggerTest {
         this.run("trigger.yaml", throwRunnable(() -> {
             publish();
 
-            queueCount.await(1, TimeUnit.MINUTES);
+            boolean await = queueCount.await(1, TimeUnit.MINUTES);
+            assertThat(await, is(true));
 
-            Integer trigger = (Integer) last.get().getTrigger().getVariables().get("count");
+            Integer trigger = (Integer) receive.blockLast().getTrigger().getVariables().get("count");
 
             assertThat(trigger, greaterThanOrEqualTo(2));
         }));
