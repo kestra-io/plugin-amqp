@@ -276,7 +276,7 @@ class AMQPTest {
     URI createTestFile(Integer length) throws Exception {
         RunContext runContext = runContextFactory.of(ImmutableMap.of());
 
-        File tempFile = runContext.tempFile(".ion").toFile();
+        File tempFile = runContext.workingDir().createTempFile(".ion").toFile();
         OutputStream output = new FileOutputStream(tempFile);
         for (int i = 0; i < length; i++) {
             FileSerde.write(output,

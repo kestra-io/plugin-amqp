@@ -64,7 +64,7 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
 
     @Override
     public Consume.Output run(RunContext runContext) throws Exception {
-        File tempFile = runContext.tempFile(".ion").toFile();
+        File tempFile = runContext.workingDir().createTempFile(".ion").toFile();
         AtomicInteger total = new AtomicInteger();
         ZonedDateTime started = ZonedDateTime.now();
 
