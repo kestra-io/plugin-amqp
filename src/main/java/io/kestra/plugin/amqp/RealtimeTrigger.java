@@ -50,7 +50,7 @@ import java.util.concurrent.atomic.AtomicReference;
             full = true,
             code = """
                 id: amqp
-                namespace: dev
+                namespace: company.team
 
                 tasks:
                 - id: log
