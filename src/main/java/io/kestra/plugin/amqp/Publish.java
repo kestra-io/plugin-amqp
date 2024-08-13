@@ -21,13 +21,11 @@ import lombok.experimental.SuperBuilder;
 
 import jakarta.validation.constraints.NotNull;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.sql.Date;
 import java.util.List;
 import java.util.Map;
@@ -106,7 +104,7 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
                 }
 
                 try (BufferedReader inputStream = new BufferedReader(new InputStreamReader(runContext.storage().getFile(from)))) {
-                    flowable = Flux.create(FileSerde.reader(inputStream, Message.class), FluxSink.OverflowStrategy.BUFFER);
+                    flowable = FileSerde.readAll(inputStream, Message.class);
                     resultFlowable = this.buildFlowable(flowable, channel, runContext);
 
                     count = resultFlowable
