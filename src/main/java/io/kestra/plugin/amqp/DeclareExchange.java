@@ -24,10 +24,17 @@ import java.util.Map;
 @Plugin(
     examples = {
         @Example(
-            code = {
-                "url: amqp://guest:guest@localhost:5672/my_vhost",
-                "name: kestramqp.exchange"
-            }
+            full = true,
+            code = """
+                id: amqp_declare_exchange
+                namespace: company.team
+
+                tasks:
+                  - id: declare_exchange
+                    type: io.kestra.plugin.amqp.DeclareExchange
+                    url: amqp://guest:guest@localhost:5672/my_vhost
+                    name: kestramqp.exchange
+                """
         )
     }
 )

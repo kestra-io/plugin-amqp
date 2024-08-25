@@ -41,11 +41,18 @@ import static io.kestra.core.utils.Rethrow.throwConsumer;
 @Plugin(
     examples = {
         @Example(
-            code = {
-                "url: amqp://guest:guest@localhost:5672/my_vhost",
-                "queue: kestramqp.queue",
-                "maxRecords: 1000"
-            }
+            full = true,
+            code = """
+                id: amqp_consume
+                namespace: company.team
+
+                tasks:
+                  - id: consume
+                    type: io.kestra.plugin.amqp.Consume
+                    url: amqp://guest:guest@localhost:5672/my_vhost
+                    queue: kestramqp.queue
+                    maxRecords: 1000
+                """
         )
     }
 )

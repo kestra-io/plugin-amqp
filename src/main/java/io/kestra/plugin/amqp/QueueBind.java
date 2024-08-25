@@ -26,11 +26,18 @@ import java.util.Map;
 @Plugin(
     examples = {
         @Example(
-            code = {
-                "url: amqp://guest:guest@localhost:5672/my_vhost",
-                "exchange: kestramqp.exchange",
-                "queue: kestramqp.queue"
-            }
+            full = true,
+            code = """
+                id: amqp_queue_bind
+                namespace: company.team
+
+                tasks:
+                  - id: queue_bind
+                    type: io.kestra.plugin.amqp.QueueBind
+                    url: amqp://guest:guest@localhost:5672/my_vhost
+                    exchange: kestramqp.exchange
+                    queue: kestramqp.queue
+                """
         )
     }
 )
