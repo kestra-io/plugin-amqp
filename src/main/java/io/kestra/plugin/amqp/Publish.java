@@ -107,9 +107,7 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
                     flowable = FileSerde.readAll(inputStream, Message.class);
                     resultFlowable = this.buildFlowable(flowable, channel, runContext);
 
-                    count = resultFlowable
-                        .reduce(Integer::sum)
-                        .block();
+                    count = resultFlowable.reduce(Integer::sum).blockOptional().orElse(0);
                 }
 
             } else if (this.from instanceof List) {
@@ -128,9 +126,7 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
 
                 resultFlowable = this.buildFlowable(flowable, channel, runContext);
 
-                count = resultFlowable
-                    .reduce(Integer::sum)
-                    .block();
+                count = resultFlowable.reduce(Integer::sum).blockOptional().orElse(0);
             } else {
                 publish(channel, JacksonMapper.toMap(runContext.render((Map<String, Object>) this.from), Message.class), runContext);
             }
