@@ -53,16 +53,16 @@ import java.util.concurrent.atomic.AtomicReference;
                 namespace: company.team
 
                 tasks:
-                - id: log
-                  type: io.kestra.plugin.core.log.Log
-                  message: "{{ trigger.data }}"
+                  - id: log
+                    type: io.kestra.plugin.core.log.Log
+                    message: "{{ trigger.data }}"
 
                 triggers:
-                - id: realtime_trigger
-                  type: io.kestra.plugin.amqp.RealtimeTrigger
-                  url: amqp://guest:guest@localhost:5672/my_vhost
-                  queue: amqpTrigger.queue
-                  """
+                  - id: realtime_trigger
+                    type: io.kestra.plugin.amqp.RealtimeTrigger
+                    url: amqp://guest:guest@localhost:5672/my_vhost
+                    queue: amqpTrigger.queue
+                """
         )
     }
 )

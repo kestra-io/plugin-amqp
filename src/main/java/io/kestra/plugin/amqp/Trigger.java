@@ -27,11 +27,18 @@ import java.util.Optional;
 @Plugin(
     examples = {
         @Example(
-            code = {
-                "url: amqp://guest:guest@localhost:5672/my_vhost",
-                "maxRecords: 2",
-                "queue: amqpTrigger.queue"
-            }
+            full = true,
+            code = """
+                id: amqp_trigger
+                namespace: company.team
+
+                tasks:
+                  - id: trigger
+                    type: io.kestra.plugin.amqp.Trigger
+                    url: amqp://guest:guest@localhost:5672/my_vhost
+                    maxRecords: 2
+                    queue: amqpTrigger.queue
+                """
         )
     }
 )

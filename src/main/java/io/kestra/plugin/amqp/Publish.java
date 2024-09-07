@@ -43,18 +43,25 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
 @Plugin(
     examples = {
         @Example(
-            code = {
-                "url: amqp://guest:guest@localhost:5672/my_vhost",
-                "exchange: kestramqp.exchange",
-                "from:",
-                "-  data: value-1",
-                "   headers:",
-                "       testHeader: KestraTest",
-                "   timestamp: '2023-01-09T08:46:33.103130753Z'",
-                "-  data: value-2",
-                "   timestamp: '2023-01-09T08:46:33.115456977Z'",
-                "   appId: unit-kestra"
-            }
+            full = true,
+            code = """
+                id: amqp_publish
+                namespace: company.team
+
+                tasks:
+                  - id: publish
+                    type: io.kestra.plugin.amqp.Publish
+                    url: amqp://guest:guest@localhost:5672/my_vhost
+                    exchange: kestramqp.exchange
+                    from:
+                      - data: value-1
+                        headers:
+                            testHeader: KestraTest
+                        timestamp: '2023-01-09T08:46:33.103130753Z'
+                      - data: value-2
+                        timestamp: '2023-01-09T08:46:33.115456977Z'
+                        appId: unit-kestra
+                """
         )
     }
 )
