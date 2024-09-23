@@ -57,7 +57,7 @@ dependencies {
     compileOnly'org.slf4j:slf4j-api'
 
     // amqp
-    api group: 'com.rabbitmq', name: 'amqp-client', version: '5.21.0'
+    api group: 'com.rabbitmq', name: 'amqp-client', version: '5.22.0'
 }
 
 
