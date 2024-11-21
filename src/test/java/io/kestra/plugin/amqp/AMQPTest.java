@@ -286,6 +286,6 @@ class AMQPTest {
                     .data("value-" + i)
                     .build()));
         }
-        return storageInterface.put(null, URI.create("/" + IdUtils.create() + ".ion"), new FileInputStream(tempFile));
+        return storageInterface.put(null, null, URI.create("/" + IdUtils.create() + ".ion"), new FileInputStream(tempFile));
     }
 }
