@@ -3,6 +3,7 @@ package io.kestra.plugin.amqp;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.google.common.collect.ImmutableMap;
 import com.rabbitmq.client.ConnectionFactory;
+import io.kestra.core.models.property.Property;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.runners.RunContextFactory;
 import io.kestra.core.serializers.FileSerde;
@@ -51,7 +52,7 @@ class AMQPTest {
     @Test
     void createConnectionFactoryWithUriOnly() throws Exception {
         Publish push = Publish.builder()
-                .url("amqp://kestra:K3str4@example.org:12345/my_vhost")
+                .url(Property.of("amqp://kestra:K3str4@example.org:12345/my_vhost"))
                 .build();
 
         ConnectionFactory connectionFactory = push.connectionFactory(runContextFactory.of());
@@ -65,11 +66,11 @@ class AMQPTest {
     @Test
     void createConnectionFactoryWithFieldsOnly() throws Exception {
         Publish push = Publish.builder()
-                .host("example.org")
-                .port("12345")
-                .username("kestra")
-                .password("K3str4")
-                .virtualHost("/my_vhost")
+                .host(Property.of("example.org"))
+                .port(Property.of("12345"))
+                .username(Property.of("kestra"))
+                .password(Property.of("K3str4"))
+                .virtualHost(Property.of("/my_vhost"))
                 .build();
 
         ConnectionFactory connectionFactory = push.connectionFactory(runContextFactory.of());
@@ -83,11 +84,11 @@ class AMQPTest {
     @Test
     void createConnectionFactoryWithUriAndFieldsButNoHost() throws Exception {
         Publish push = Publish.builder()
-                .url("amqp://example.org")
-                .port("12345")
-                .username("kestra")
-                .password("K3str4")
-                .virtualHost("/my_vhost")
+                .url(Property.of("amqp://example.org"))
+                .port(Property.of("12345"))
+                .username(Property.of("kestra"))
+                .password(Property.of("K3str4"))
+                .virtualHost(Property.of("/my_vhost"))
                 .build();
 
         ConnectionFactory connectionFactory = push.connectionFactory(runContextFactory.of());
@@ -101,8 +102,8 @@ class AMQPTest {
     @Test
     void createConnectionFactoryWithUriAndHostBothDefined() {
         Publish push = Publish.builder()
-                .url("amqp://example.org")
-                .host("ignore.it")
+                .url(Property.of("amqp://example.org"))
+                .host(Property.of("ignore.it"))
                 .build();
 
         assertThrows(IllegalArgumentException.class, () -> push.connectionFactory(runContextFactory.of()));
@@ -111,8 +112,8 @@ class AMQPTest {
     @Test
     void pushAsList() throws Exception {
         Publish push = Publish.builder()
-            .url("amqp://guest:guest@localhost:5672/my_vhost")
-            .exchange("kestramqp.exchange")
+            .url(Property.of("amqp://guest:guest@localhost:5672/my_vhost"))
+            .exchange(Property.of("kestramqp.exchange"))
             .from(Arrays.asList(
                 JacksonMapper.toMap(Message.builder()
                     .headers(ImmutableMap.of("testHeader", "KestraTest"))
@@ -132,13 +133,13 @@ class AMQPTest {
         assertThat(pushOutput.getMessagesCount(), is(2));
 
         Consume consume = Consume.builder()
-            .host("localhost")
-            .port("5672")
-            .username("guest")
-            .password("guest")
-            .virtualHost("/my_vhost")
-            .queue("kestramqp.queue")
-            .maxDuration(Duration.ofSeconds(3))
+            .host(Property.of("localhost"))
+            .port(Property.of("5672"))
+            .username(Property.of("guest"))
+            .password(Property.of("guest"))
+            .virtualHost(Property.of("/my_vhost"))
+            .queue(Property.of("kestramqp.queue"))
+            .maxDuration(Property.of(Duration.ofSeconds(3)))
             .build();
 
         Consume.Output pullOutput = consume.run(runContextFactory.of());
@@ -148,9 +149,9 @@ class AMQPTest {
     @Test
     void failed() throws Exception {
         Publish push = Publish.builder()
-            .url("amqp://guest:guest@localhost:5672/my_vhost")
-            .exchange("kestramqp.exchange")
-            .serdeType(SerdeType.STRING)
+            .url(Property.of("amqp://guest:guest@localhost:5672/my_vhost"))
+            .exchange(Property.of("kestramqp.exchange"))
+            .serdeType(Property.of(SerdeType.STRING))
             .from(JacksonMapper.toMap(Message.builder()
                 .headers(ImmutableMap.of("testHeader", "KestraTest"))
                 .timestamp(Instant.now())
@@ -164,10 +165,10 @@ class AMQPTest {
         assertThat(pushOutput.getMessagesCount(), is(1));
 
         Consume consume = Consume.builder()
-            .url("amqp://guest:guest@localhost:5672/my_vhost")
-            .queue("kestramqp.queue")
-            .serdeType(SerdeType.JSON)
-            .maxDuration(Duration.ofSeconds(3))
+            .url(Property.of("amqp://guest:guest@localhost:5672/my_vhost"))
+            .queue(Property.of("kestramqp.queue"))
+            .serdeType(Property.of(SerdeType.JSON))
+            .maxDuration(Property.of(Duration.ofSeconds(3)))
             .build();
 
         assertThrows(JsonParseException.class, () -> {
@@ -180,8 +181,8 @@ class AMQPTest {
         URI uri = createTestFile(50000);
 
         Publish push = Publish.builder()
-            .url("amqp://guest:guest@localhost:5672/my_vhost")
-            .exchange("kestramqp.exchange")
+            .url(Property.of("amqp://guest:guest@localhost:5672/my_vhost"))
+            .exchange(Property.of("kestramqp.exchange"))
             // .headers(ImmutableMap.of("testHeader", "KestraTest"))
             .from(uri.toString())
             .build();
@@ -191,9 +192,9 @@ class AMQPTest {
         assertThat(pushOutput.getMessagesCount(), is(50000));
 
         Consume consume = Consume.builder()
-            .url("amqp://guest:guest@localhost:5672/my_vhost")
-            .queue("kestramqp.queue")
-            .maxRecords(1000)
+            .url(Property.of("amqp://guest:guest@localhost:5672/my_vhost"))
+            .queue(Property.of("kestramqp.queue"))
+            .maxRecords(Property.of(1000))
             .build();
 
         Consume.Output pullOutput = consume.run(runContextFactory.of());
@@ -205,8 +206,8 @@ class AMQPTest {
         URI uri = createTestFile(5);
 
         Publish push = Publish.builder()
-            .url("amqp://guest:guest@localhost:5672/my_vhost")
-            .exchange("kestramqp.exchange")
+            .url(Property.of("amqp://guest:guest@localhost:5672/my_vhost"))
+            .exchange(Property.of("kestramqp.exchange"))
             // .headers(ImmutableMap.of("testHeader", "KestraTest"))
             .from(uri.toString())
             .build();
@@ -216,9 +217,9 @@ class AMQPTest {
         assertThat(pushOutput.getMessagesCount(), is(5));
 
         Consume consume = Consume.builder()
-            .url("amqp://guest:guest@localhost:5672/my_vhost")
-            .queue("kestramqp.queue")
-            .maxDuration(Duration.ofSeconds(3))
+            .url(Property.of("amqp://guest:guest@localhost:5672/my_vhost"))
+            .queue(Property.of("kestramqp.queue"))
+            .maxDuration(Property.of(Duration.ofSeconds(3)))
             .build();
 
         Consume.Output pullOutput = consume.run(runContextFactory.of());
@@ -229,17 +230,17 @@ class AMQPTest {
     @Test
     void createAndBindTest() throws Exception {
         DeclareExchange declareExchange = DeclareExchange.builder()
-            .url("amqp://guest:guest@localhost:5672/my_vhost")
-            .name("amqptests.exchange")
+            .url(Property.of("amqp://guest:guest@localhost:5672/my_vhost"))
+            .name(Property.of("amqptests.exchange"))
             .build();
         CreateQueue createQueue = CreateQueue.builder()
-            .url("amqp://guest:guest@localhost:5672/my_vhost")
-            .name("amqptests.queue")
+            .url(Property.of("amqp://guest:guest@localhost:5672/my_vhost"))
+            .name(Property.of("amqptests.queue"))
             .build();
         QueueBind queueBind = QueueBind.builder()
-            .url("amqp://guest:guest@localhost:5672/my_vhost")
-            .exchange("amqptests.exchange")
-            .queue("amqptests.queue")
+            .url(Property.of("amqp://guest:guest@localhost:5672/my_vhost"))
+            .exchange(Property.of("amqptests.exchange"))
+            .queue(Property.of("amqptests.queue"))
             .build();
 
         DeclareExchange.Output createExchangeOutput = declareExchange.run(runContextFactory.of());
@@ -255,17 +256,17 @@ class AMQPTest {
     @BeforeAll
     void setUp() throws Exception {
         DeclareExchange declareExchange = DeclareExchange.builder()
-            .url("amqp://guest:guest@localhost:5672/my_vhost")
-            .name("kestramqp.exchange")
+            .url(Property.of("amqp://guest:guest@localhost:5672/my_vhost"))
+            .name(Property.of("kestramqp.exchange"))
             .build();
         CreateQueue createQueue = CreateQueue.builder()
-            .url("amqp://guest:guest@localhost:5672/my_vhost")
-            .name("kestramqp.queue")
+            .url(Property.of("amqp://guest:guest@localhost:5672/my_vhost"))
+            .name(Property.of("kestramqp.queue"))
             .build();
         QueueBind queueBind = QueueBind.builder()
-            .url("amqp://guest:guest@localhost:5672/my_vhost")
-            .exchange("kestramqp.exchange")
-            .queue("kestramqp.queue")
+            .url(Property.of("amqp://guest:guest@localhost:5672/my_vhost"))
+            .exchange(Property.of("kestramqp.exchange"))
+            .queue(Property.of("kestramqp.queue"))
             .build();
 
         declareExchange.run(runContextFactory.of());

@@ -2,6 +2,7 @@ package io.kestra.plugin.amqp;
 
 import com.google.common.collect.ImmutableMap;
 import io.kestra.core.models.executions.Execution;
+import io.kestra.core.models.property.Property;
 import io.kestra.core.queues.QueueFactoryInterface;
 import io.kestra.core.queues.QueueInterface;
 import io.kestra.core.repositories.LocalFlowRepositoryLoader;
@@ -49,17 +50,17 @@ abstract class AbstractTriggerTest {
     @BeforeAll
     void setUp() throws Exception {
         DeclareExchange declareExchange = DeclareExchange.builder()
-            .url("amqp://guest:guest@localhost:5672/my_vhost")
-            .name("amqpTrigger.exchange")
+            .url(Property.of("amqp://guest:guest@localhost:5672/my_vhost"))
+            .name(Property.of("amqpTrigger.exchange"))
             .build();
         CreateQueue createQueue = CreateQueue.builder()
-            .url("amqp://guest:guest@localhost:5672/my_vhost")
-            .name("amqpTrigger.queue")
+            .url(Property.of("amqp://guest:guest@localhost:5672/my_vhost"))
+            .name(Property.of("amqpTrigger.queue"))
             .build();
         QueueBind queueBind = QueueBind.builder()
-            .url("amqp://guest:guest@localhost:5672/my_vhost")
-            .exchange("amqpTrigger.exchange")
-            .queue("amqpTrigger.queue")
+            .url(Property.of("amqp://guest:guest@localhost:5672/my_vhost"))
+            .exchange(Property.of("amqpTrigger.exchange"))
+            .queue(Property.of("amqpTrigger.queue"))
             .build();
 
         declareExchange.run(runContextFactory.of());
@@ -85,8 +86,8 @@ abstract class AbstractTriggerTest {
         var task = Publish.builder()
             .id(TriggerTest.class.getSimpleName())
             .type(Publish.class.getName())
-            .url("amqp://guest:guest@localhost:5672/my_vhost")
-            .exchange("amqpTrigger.exchange")
+            .url(Property.of("amqp://guest:guest@localhost:5672/my_vhost"))
+            .exchange(Property.of("amqpTrigger.exchange"))
             .from(Arrays.asList(
                 JacksonMapper.toMap(Message.builder()
                     .headers(ImmutableMap.of("testHeader", "KestraTest"))

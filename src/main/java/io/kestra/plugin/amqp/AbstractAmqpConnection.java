@@ -2,6 +2,7 @@ package io.kestra.plugin.amqp;
 
 import com.rabbitmq.client.ConnectionFactory;
 import io.kestra.core.exceptions.IllegalVariableEvaluationException;
+import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.Task;
 import io.kestra.core.runners.RunContext;
 import java.util.Optional;
@@ -20,27 +21,27 @@ import java.net.URISyntaxException;
 @Getter
 @NoArgsConstructor
 public abstract class AbstractAmqpConnection extends Task implements AmqpConnectionInterface {
-    private String url;
-    private String host;
-    private String port;
-    private String username;
-    private String password;
-    private String virtualHost;
+    private Property<String> url;
+    private Property<String> host;
+    private Property<String> port;
+    private Property<String> username;
+    private Property<String> password;
+    private Property<String> virtualHost;
 
     public ConnectionFactory connectionFactory(RunContext runContext) throws Exception {
         if (url != null && host != null) {
             throw new IllegalArgumentException("Cannot define both `url` and `host`");
         }
         if (url != null) {
-            parseFromUrl(runContext, url);
+            parseFromUrl(runContext, runContext.render(url).as(String.class).orElseThrow());
         }
 
         ConnectionFactory factory = new ConnectionFactory();
-        Optional.ofNullable(runContext.render(host)).ifPresent(factory::setHost);
-        Optional.ofNullable(runContext.render(port)).map(Integer::parseInt).ifPresent(factory::setPort);
-        Optional.ofNullable(runContext.render(username)).ifPresent(factory::setUsername);
-        Optional.ofNullable(runContext.render(password)).ifPresent(factory::setPassword);
-        Optional.ofNullable(runContext.render(virtualHost)).ifPresent(factory::setVirtualHost);
+        runContext.render(host).as(String.class).ifPresent(factory::setHost);
+        runContext.render(port).as(String.class).map(Integer::parseInt).ifPresent(factory::setPort);
+        runContext.render(username).as(String.class).ifPresent(factory::setUsername);
+        runContext.render(password).as(String.class).ifPresent(factory::setPassword);
+        runContext.render(virtualHost).as(String.class).ifPresent(factory::setVirtualHost);
 
         factory.setExceptionHandler(new AmqpExceptionHandler(runContext.logger()));
 
@@ -50,20 +51,20 @@ public abstract class AbstractAmqpConnection extends Task implements AmqpConnect
     void parseFromUrl(RunContext runContext, String url) throws IllegalVariableEvaluationException, URISyntaxException {
         URI amqpUri = new URI(runContext.render(url));
 
-        host = amqpUri.getHost();
+        host = Property.of(amqpUri.getHost());
         if (amqpUri.getPort() != -1) {
-            port = String.valueOf(amqpUri.getPort());
+            port = Property.of(String.valueOf(amqpUri.getPort()));
         }
 
         String auth = amqpUri.getUserInfo();
         if (auth != null) {
             int pos = auth.indexOf(':');
-            username = pos > 0 ? auth.substring(0, pos) : auth;
-            password = pos > 0 ? auth.substring(pos + 1) : "";
+            username = Property.of(pos > 0 ? auth.substring(0, pos) : auth);
+            password = Property.of(pos > 0 ? auth.substring(pos + 1) : "");
         }
 
         if (!amqpUri.getPath().isEmpty()) {
-            virtualHost = amqpUri.getPath();
+            virtualHost = Property.of(amqpUri.getPath());
         }
     }
 }

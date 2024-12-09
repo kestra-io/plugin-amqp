@@ -6,6 +6,7 @@ import com.rabbitmq.client.ConnectionFactory;
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.annotations.PluginProperty;
+import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -13,7 +14,10 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 import jakarta.validation.constraints.NotNull;
+
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 @SuperBuilder
 @ToString
@@ -43,39 +47,38 @@ import java.util.Map;
 )
 public class QueueBind extends AbstractAmqpConnection implements RunnableTask<QueueBind.Output> {
     @NotNull
-    @PluginProperty(dynamic = true)
     @Schema(
         title = "The exchange to bind with."
     )
-    private String exchange;
+    private Property<String> exchange;
 
     @NotNull
-    @PluginProperty(dynamic = true)
     @Schema(
         title = "The queue to bind."
     )
-    private String queue;
+    private Property<String> queue;
 
     @Schema(
         title = "The routing key to use for the binding."
     )
-    private String routingKey;
+    private Property<String> routingKey;
 
     @Schema(
         title = "Other properties (binding parameters)."
     )
-    private Map<String, Object> args;
+    private Property<Map<String, Object>> args;
 
     @Override
     public Output run(RunContext runContext) throws Exception {
         ConnectionFactory factory = this.connectionFactory(runContext);
 
-        String queue = runContext.render(this.queue);
-        String exchange = runContext.render(this.exchange);
+        String queue = runContext.render(this.queue).as(String.class).orElseThrow();
+        String exchange = runContext.render(this.exchange).as(String.class).orElseThrow();
 
+        var argsMap = runContext.render(args).asMap(String.class, Objects.class);
         try (Connection connection = factory.newConnection()) {
             Channel channel = connection.createChannel();
-            channel.queueBind(queue, exchange, routingKey == null ? "" : runContext.render(routingKey), args);
+            channel.queueBind(queue, exchange, runContext.render(routingKey).as(String.class).orElse(""), argsMap.isEmpty() ? new HashMap<>() : argsMap);
             channel.close();
         }
 

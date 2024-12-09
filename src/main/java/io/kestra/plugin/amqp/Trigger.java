@@ -4,6 +4,7 @@ import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.conditions.ConditionContext;
 import io.kestra.core.models.executions.Execution;
+import io.kestra.core.models.property.Property;
 import io.kestra.core.models.triggers.*;
 import io.kestra.core.runners.RunContext;
 import io.kestra.plugin.amqp.models.SerdeType;
@@ -46,24 +47,24 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
     @Builder.Default
     private final Duration interval = Duration.ofSeconds(60);
 
-    private String url;
-    private String host;
-    private String port;
-    private String username;
-    private String password;
-    private String virtualHost;
+    private Property<String> url;
+    private Property<String> host;
+    private Property<String> port;
+    private Property<String> username;
+    private Property<String> password;
+    private Property<String> virtualHost;
 
-    private String queue;
-
-    @Builder.Default
-    private String consumerTag = "Kestra";
-
-    private Integer maxRecords;
-
-    private Duration maxDuration;
+    private Property<String> queue;
 
     @Builder.Default
-    private SerdeType serdeType = SerdeType.STRING;
+    private Property<String> consumerTag = Property.of("Kestra");
+
+    private Property<Integer> maxRecords;
+
+    private Property<Duration> maxDuration;
+
+    @Builder.Default
+    private Property<SerdeType> serdeType = Property.of(SerdeType.STRING);
 
     @Override
     public Optional<Execution> evaluate(ConditionContext conditionContext, TriggerContext context) throws Exception {
