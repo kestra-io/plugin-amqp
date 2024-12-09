@@ -9,6 +9,7 @@ import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.executions.metrics.Counter;
+import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.serializers.FileSerde;
@@ -67,17 +68,15 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
 )
 public class Publish extends AbstractAmqpConnection implements RunnableTask<Publish.Output> {
     @NotNull
-    @PluginProperty(dynamic = true)
     @Schema(
         title = "The exchange to publish the message to"
     )
-    private String exchange;
+    private Property<String> exchange;
 
-    @PluginProperty(dynamic = true)
     @Schema(
         title = "The routing key"
     )
-    private String routingKey;
+    private Property<String> routingKey;
 
     @PluginProperty(dynamic = true)
     @NotNull
@@ -89,7 +88,7 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
     private Object from;
 
     @Builder.Default
-    private SerdeType serdeType = SerdeType.STRING;
+    private Property<SerdeType> serdeType = Property.of(SerdeType.STRING);
 
     @Override
     public Publish.Output run(RunContext runContext) throws Exception {
@@ -160,8 +159,8 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
 
     private void publish(Channel channel, Message message, RunContext runContext) throws IOException, IllegalVariableEvaluationException {
         channel.basicPublish(
-            runContext.render(this.exchange),
-            this.routingKey == null ? "" : runContext.render(this.routingKey),
+            runContext.render(this.exchange).as(String.class).orElseThrow(),
+            runContext.render(this.routingKey).as(String.class).orElse(""),
             new AMQP.BasicProperties(
                 message.getContentType(),
                 message.getContentEncoding(),
@@ -178,7 +177,7 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
                 message.getAppId(),
                 null
             ),
-            serdeType.serialize(message.getData())
+            runContext.render(serdeType).as(SerdeType.class).orElseThrow().serialize(message.getData())
         );
     }
 

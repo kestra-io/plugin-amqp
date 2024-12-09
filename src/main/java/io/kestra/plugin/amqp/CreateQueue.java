@@ -6,6 +6,7 @@ import com.rabbitmq.client.ConnectionFactory;
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.annotations.PluginProperty;
+import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -13,6 +14,8 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 import jakarta.validation.constraints.NotNull;
+
+import java.util.HashMap;
 import java.util.Map;
 
 @SuperBuilder
@@ -44,34 +47,33 @@ import java.util.Map;
 public class CreateQueue extends AbstractAmqpConnection implements RunnableTask<CreateQueue.Output> {
 
     @NotNull
-    @PluginProperty(dynamic = true)
     @Schema(
         title = "The name of the queue."
     )
-    private String name;
+    private Property<String> name;
 
     @Builder.Default
     @Schema(
         title = "Specify if we are declaring a durable queue (the queue will survive a server restart)."
     )
-    private boolean durability = true;
+    private Property<Boolean> durability = Property.of(true);
 
     @Builder.Default
     @Schema(
         title = "Specify if we are declaring an exclusive queue (restricted to this connection)."
     )
-    private boolean exclusive = false;
+    private Property<Boolean> exclusive = Property.of(false);
 
     @Builder.Default
     @Schema(
         title = "Specify if we are declaring an auto-delete queue (server will delete it when no longer in use)."
     )
-    private boolean autoDelete = false;
+    private Property<Boolean> autoDelete = Property.of(false);
 
     @Schema(
         title = "Other properties (construction arguments) for the queue."
     )
-    private Map<String, Object> args;
+    private Property<Map<String, Object>> args;
 
     @Override
     public Output run(RunContext runContext) throws Exception {
@@ -80,11 +82,18 @@ public class CreateQueue extends AbstractAmqpConnection implements RunnableTask<
         try (Connection connection = factory.newConnection()) {
             Channel channel = connection.createChannel();
 
-            channel.queueDeclare(runContext.render(name), durability, exclusive, autoDelete, args);
+            var argsMap = runContext.render(args).asMap(String.class,  Object.class);
+
+            channel.queueDeclare(runContext.render(name).as(String.class).orElseThrow(),
+                runContext.render(durability).as(Boolean.class).orElseThrow(),
+                runContext.render(exclusive).as(Boolean.class).orElseThrow(),
+                runContext.render(autoDelete).as(Boolean.class).orElseThrow(),
+                argsMap.isEmpty() ? new HashMap<>() : argsMap
+            );
             channel.close();
         }
 
-        return Output.builder().queue(runContext.render(name)).build();
+        return Output.builder().queue(runContext.render(name).as(String.class).orElseThrow()).build();
     }
 
     @Builder

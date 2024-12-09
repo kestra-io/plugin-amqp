@@ -9,6 +9,7 @@ import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.conditions.ConditionContext;
 import io.kestra.core.models.executions.Execution;
+import io.kestra.core.models.property.Property;
 import io.kestra.core.models.triggers.AbstractTrigger;
 import io.kestra.core.models.triggers.RealtimeTriggerInterface;
 import io.kestra.core.models.triggers.TriggerContext;
@@ -67,20 +68,20 @@ import java.util.concurrent.atomic.AtomicReference;
     }
 )
 public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerInterface, TriggerOutput<Message>, ConsumeBaseInterface, AmqpConnectionInterface {
-    private String url;
-    private String host;
-    private String port;
-    private String username;
-    private String password;
-    private String virtualHost;
+    private Property<String> url;
+    private Property<String> host;
+    private Property<String> port;
+    private Property<String> username;
+    private Property<String> password;
+    private Property<String> virtualHost;
 
-    private String queue;
-
-    @Builder.Default
-    private String consumerTag = "Kestra";
+    private Property<String> queue;
 
     @Builder.Default
-    private SerdeType serdeType = SerdeType.STRING;
+    private Property<String> consumerTag = Property.of("Kestra");
+
+    @Builder.Default
+    private Property<SerdeType> serdeType = Property.of(SerdeType.STRING);
 
     @Builder.Default
     @Getter(AccessLevel.NONE)
@@ -113,8 +114,8 @@ public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerI
             emitter -> {
                 final AtomicReference<Throwable> error = new AtomicReference<>();
                 try {
-                    final String queue = runContext.render(task.getQueue());
-                    final String consumerTag = runContext.render(task.getConsumerTag());
+                    final String queue = runContext.render(task.getQueue()).as(String.class).orElseThrow();
+                    final String consumerTag = runContext.render(task.getConsumerTag()).as(String.class).orElseThrow();
 
                     ConnectionFactory factory = task.connectionFactory(runContext);
                     Connection connection = factory.newConnection();
@@ -139,7 +140,7 @@ public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerI
 
                     DeliverCallback deliverCallback = (tag, message) -> {
                         try {
-                            Message output = Message.of(message.getBody(), task.getSerdeType(), message.getProperties());
+                            Message output = Message.of(message.getBody(), runContext.render(task.getSerdeType()).as(SerdeType.class).orElseThrow(), message.getProperties());
                             emitter.next(output);
                             channel.basicAck(message.getEnvelope().getDeliveryTag(), false);
                         } catch (Exception e) {
