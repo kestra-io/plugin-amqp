@@ -23,7 +23,7 @@ import java.util.Objects;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Create an exchange."
+    title = "Create an AMQP exchange."
 )
 @Plugin(
     examples = {
