@@ -25,7 +25,7 @@ import java.util.Objects;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Bind a queue to an exchange."
+    title = "Bind a queue to an AMQP exchange."
 )
 @Plugin(
     examples = {

@@ -24,7 +24,7 @@ import java.util.Map;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Create a queue.",
+    title = "Create an AMQP queue.",
     description = "Create a queue, including specified arguments."
 )
 @Plugin(
