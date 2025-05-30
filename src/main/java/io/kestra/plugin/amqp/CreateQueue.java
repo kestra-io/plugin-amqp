@@ -56,19 +56,19 @@ public class CreateQueue extends AbstractAmqpConnection implements RunnableTask<
     @Schema(
         title = "Specify if we are declaring a durable queue (the queue will survive a server restart)."
     )
-    private Property<Boolean> durability = Property.of(true);
+    private Property<Boolean> durability = Property.ofValue(true);
 
     @Builder.Default
     @Schema(
         title = "Specify if we are declaring an exclusive queue (restricted to this connection)."
     )
-    private Property<Boolean> exclusive = Property.of(false);
+    private Property<Boolean> exclusive = Property.ofValue(false);
 
     @Builder.Default
     @Schema(
         title = "Specify if we are declaring an auto-delete queue (server will delete it when no longer in use)."
     )
-    private Property<Boolean> autoDelete = Property.of(false);
+    private Property<Boolean> autoDelete = Property.ofValue(false);
 
     @Schema(
         title = "Other properties (construction arguments) for the queue."

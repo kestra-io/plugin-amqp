@@ -88,7 +88,7 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
     private Object from;
 
     @Builder.Default
-    private Property<SerdeType> serdeType = Property.of(SerdeType.STRING);
+    private Property<SerdeType> serdeType = Property.ofValue(SerdeType.STRING);
 
     @Override
     public Publish.Output run(RunContext runContext) throws Exception {

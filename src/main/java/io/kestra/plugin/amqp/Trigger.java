@@ -65,14 +65,14 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
     private Property<String> queue;
 
     @Builder.Default
-    private Property<String> consumerTag = Property.of("Kestra");
+    private Property<String> consumerTag = Property.ofValue("Kestra");
 
     private Property<Integer> maxRecords;
 
     private Property<Duration> maxDuration;
 
     @Builder.Default
-    private Property<SerdeType> serdeType = Property.of(SerdeType.STRING);
+    private Property<SerdeType> serdeType = Property.ofValue(SerdeType.STRING);
 
     @Override
     public Optional<Execution> evaluate(ConditionContext conditionContext, TriggerContext context) throws Exception {
