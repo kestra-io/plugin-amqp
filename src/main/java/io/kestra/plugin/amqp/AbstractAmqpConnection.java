@@ -26,9 +26,7 @@ public abstract class AbstractAmqpConnection extends Task implements AmqpConnect
     private Property<String> host;
     @Builder.Default
     private Property<String> port = Property.ofValue("5672");
-    @NotNull
     private Property<String> username;
-    @NotNull
     private Property<String> password;
     @Builder.Default
     private Property<String> virtualHost = Property.ofValue("/");
@@ -56,20 +54,20 @@ public abstract class AbstractAmqpConnection extends Task implements AmqpConnect
     void parseFromUrl(RunContext runContext, String url) throws IllegalVariableEvaluationException, URISyntaxException {
         URI amqpUri = new URI(runContext.render(url));
 
-        host = Property.of(amqpUri.getHost());
+        host = Property.ofValue(amqpUri.getHost());
         if (amqpUri.getPort() != -1) {
-            port = Property.of(String.valueOf(amqpUri.getPort()));
+            port = Property.ofValue(String.valueOf(amqpUri.getPort()));
         }
 
         String auth = amqpUri.getUserInfo();
         if (auth != null) {
             int pos = auth.indexOf(':');
-            username = Property.of(pos > 0 ? auth.substring(0, pos) : auth);
-            password = Property.of(pos > 0 ? auth.substring(pos + 1) : "");
+            username = Property.ofValue(pos > 0 ? auth.substring(0, pos) : auth);
+            password = Property.ofValue(pos > 0 ? auth.substring(pos + 1) : "");
         }
 
         if (!amqpUri.getPath().isEmpty()) {
-            virtualHost = Property.of(amqpUri.getPath());
+            virtualHost = Property.ofValue(amqpUri.getPath());
         }
     }
 }

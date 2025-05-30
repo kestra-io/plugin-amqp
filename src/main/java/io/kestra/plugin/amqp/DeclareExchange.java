@@ -53,25 +53,25 @@ public class DeclareExchange extends AbstractAmqpConnection implements RunnableT
     @Schema(
         title = "The exchange type."
     )
-    private Property<BuiltinExchangeType> exchangeType = Property.of(BuiltinExchangeType.DIRECT);
+    private Property<BuiltinExchangeType> exchangeType = Property.ofValue(BuiltinExchangeType.DIRECT);
 
     @Builder.Default
     @Schema(
         title = "Specify if we are declaring a durable exchange (the exchange will survive a server restart)."
     )
-    private Property<Boolean> durability = Property.of(true);
+    private Property<Boolean> durability = Property.ofValue(true);
 
     @Builder.Default
     @Schema(
         title = "Specify if the server should delete the exchange when it is no longer in use."
     )
-    private Property<Boolean> autoDelete = Property.of(false);
+    private Property<Boolean> autoDelete = Property.ofValue(false);
 
     @Builder.Default
     @Schema(
         title = "Specify if the exchange is internal, i.e. can't be directly published to by a client."
     )
-    private Property<Boolean> internal = Property.of(false);
+    private Property<Boolean> internal = Property.ofValue(false);
 
     @Schema(
         title = "Other properties (construction arguments) for the exchange."
