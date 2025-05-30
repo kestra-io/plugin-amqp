@@ -50,17 +50,17 @@ abstract class AbstractTriggerTest {
     @BeforeAll
     void setUp() throws Exception {
         DeclareExchange declareExchange = DeclareExchange.builder()
-            .url(Property.of("amqp://guest:guest@localhost:5672/my_vhost"))
-            .name(Property.of("amqpTrigger.exchange"))
+            .url(Property.ofValue("amqp://guest:guest@localhost:5672/my_vhost"))
+            .name(Property.ofValue("amqpTrigger.exchange"))
             .build();
         CreateQueue createQueue = CreateQueue.builder()
-            .url(Property.of("amqp://guest:guest@localhost:5672/my_vhost"))
-            .name(Property.of("amqpTrigger.queue"))
+            .url(Property.ofValue("amqp://guest:guest@localhost:5672/my_vhost"))
+            .name(Property.ofValue("amqpTrigger.queue"))
             .build();
         QueueBind queueBind = QueueBind.builder()
-            .url(Property.of("amqp://guest:guest@localhost:5672/my_vhost"))
-            .exchange(Property.of("amqpTrigger.exchange"))
-            .queue(Property.of("amqpTrigger.queue"))
+            .url(Property.ofValue("amqp://guest:guest@localhost:5672/my_vhost"))
+            .exchange(Property.ofValue("amqpTrigger.exchange"))
+            .queue(Property.ofValue("amqpTrigger.queue"))
             .build();
 
         declareExchange.run(runContextFactory.of());
@@ -86,8 +86,8 @@ abstract class AbstractTriggerTest {
         var task = Publish.builder()
             .id(TriggerTest.class.getSimpleName())
             .type(Publish.class.getName())
-            .url(Property.of("amqp://guest:guest@localhost:5672/my_vhost"))
-            .exchange(Property.of("amqpTrigger.exchange"))
+            .url(Property.ofValue("amqp://guest:guest@localhost:5672/my_vhost"))
+            .exchange(Property.ofValue("amqpTrigger.exchange"))
             .from(Arrays.asList(
                 JacksonMapper.toMap(Message.builder()
                     .headers(ImmutableMap.of("testHeader", "KestraTest"))
