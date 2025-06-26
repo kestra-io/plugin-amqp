@@ -50,15 +50,27 @@ abstract class AbstractTriggerTest {
     @BeforeAll
     void setUp() throws Exception {
         DeclareExchange declareExchange = DeclareExchange.builder()
-            .url(Property.of("amqp://guest:guest@localhost:5672/my_vhost"))
+            .host(Property.of("localhost"))
+            .port(Property.of("5672"))
+            .username(Property.of("guest"))
+            .password(Property.of("guest"))
+            .virtualHost(Property.of("/my_vhost"))
             .name(Property.of("amqpTrigger.exchange"))
             .build();
         CreateQueue createQueue = CreateQueue.builder()
-            .url(Property.of("amqp://guest:guest@localhost:5672/my_vhost"))
+            .host(Property.of("localhost"))
+            .port(Property.of("5672"))
+            .username(Property.of("guest"))
+            .password(Property.of("guest"))
+            .virtualHost(Property.of("/my_vhost"))
             .name(Property.of("amqpTrigger.queue"))
             .build();
         QueueBind queueBind = QueueBind.builder()
-            .url(Property.of("amqp://guest:guest@localhost:5672/my_vhost"))
+            .host(Property.of("localhost"))
+            .port(Property.of("5672"))
+            .username(Property.of("guest"))
+            .password(Property.of("guest"))
+            .virtualHost(Property.of("/my_vhost"))
             .exchange(Property.of("amqpTrigger.exchange"))
             .queue(Property.of("amqpTrigger.queue"))
             .build();
@@ -86,7 +98,11 @@ abstract class AbstractTriggerTest {
         var task = Publish.builder()
             .id(TriggerTest.class.getSimpleName())
             .type(Publish.class.getName())
-            .url(Property.of("amqp://guest:guest@localhost:5672/my_vhost"))
+            .host(Property.ofValue("localhost"))
+            .port(Property.ofValue("5672"))
+            .username(Property.ofValue("guest"))
+            .password(Property.ofValue("guest"))
+            .virtualHost(Property.ofValue("/my_vhost"))
             .exchange(Property.of("amqpTrigger.exchange"))
             .from(Arrays.asList(
                 JacksonMapper.toMap(Message.builder()

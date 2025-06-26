@@ -9,6 +9,7 @@ import io.kestra.core.models.triggers.*;
 import io.kestra.core.runners.RunContext;
 import io.kestra.plugin.amqp.models.SerdeType;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.slf4j.Logger;
@@ -46,13 +47,16 @@ import java.util.Optional;
 public class Trigger extends AbstractTrigger implements PollingTriggerInterface, TriggerOutput<Consume.Output>, ConsumeInterface, AmqpConnectionInterface {
     @Builder.Default
     private final Duration interval = Duration.ofSeconds(60);
-
+    @Deprecated
     private Property<String> url;
+    @NotNull
     private Property<String> host;
-    private Property<String> port;
+    @Builder.Default
+    private Property<String> port = Property.ofValue("5672");
     private Property<String> username;
     private Property<String> password;
-    private Property<String> virtualHost;
+    @Builder.Default
+    private Property<String> virtualHost = Property.ofValue("/");
 
     private Property<String> queue;
 

@@ -6,10 +6,9 @@ import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.Task;
 import io.kestra.core.runners.RunContext;
 import java.util.Optional;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+
+import jakarta.validation.constraints.NotNull;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 import java.net.URI;
@@ -21,12 +20,18 @@ import java.net.URISyntaxException;
 @Getter
 @NoArgsConstructor
 public abstract class AbstractAmqpConnection extends Task implements AmqpConnectionInterface {
+    @Deprecated
     private Property<String> url;
+    @NotNull
     private Property<String> host;
-    private Property<String> port;
+    @Builder.Default
+    private Property<String> port = Property.ofValue("5672");
+    @NotNull
     private Property<String> username;
+    @NotNull
     private Property<String> password;
-    private Property<String> virtualHost;
+    @Builder.Default
+    private Property<String> virtualHost = Property.ofValue("/");
 
     public ConnectionFactory connectionFactory(RunContext runContext) throws Exception {
         if (url != null && host != null) {
