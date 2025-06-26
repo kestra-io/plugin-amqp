@@ -19,6 +19,7 @@ import io.kestra.core.runners.RunContext;
 import io.kestra.plugin.amqp.models.Message;
 import io.kestra.plugin.amqp.models.SerdeType;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -68,12 +69,16 @@ import java.util.concurrent.atomic.AtomicReference;
     }
 )
 public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerInterface, TriggerOutput<Message>, ConsumeBaseInterface, AmqpConnectionInterface {
+    @Deprecated
     private Property<String> url;
+    @NotNull
     private Property<String> host;
-    private Property<String> port;
+    @Builder.Default
+    private Property<String> port = Property.ofValue("5672");
     private Property<String> username;
     private Property<String> password;
-    private Property<String> virtualHost;
+    @Builder.Default
+    private Property<String> virtualHost = Property.ofValue("/");
 
     private Property<String> queue;
 
