@@ -37,7 +37,11 @@ import java.util.Optional;
                 tasks:
                   - id: trigger
                     type: io.kestra.plugin.amqp.Trigger
-                    url: amqp://guest:guest@localhost:5672/my_vhost
+                    host: localhost
+                    port: 5672
+                    username: guest
+                    password: guest
+                    virtualHost: /my_vhost
                     maxRecords: 2
                     queue: amqpTrigger.queue
                 """
