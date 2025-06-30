@@ -57,10 +57,10 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
     private Property<String> queue;
 
     @Builder.Default
-    private Property<SerdeType> serdeType = Property.of(SerdeType.STRING);
+    private Property<SerdeType> serdeType = Property.ofValue(SerdeType.STRING);
 
     @Builder.Default
-    private Property<String> consumerTag = Property.of("Kestra");
+    private Property<String> consumerTag = Property.ofValue("Kestra");
 
     private Property<Integer> maxRecords;
 
