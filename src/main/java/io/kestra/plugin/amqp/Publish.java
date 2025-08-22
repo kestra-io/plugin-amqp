@@ -81,7 +81,7 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
     @PluginProperty(dynamic = true)
     @NotNull
     @Schema(
-        title = "The source of the data published.",
+        title = "The source of the data published",
         description = "It can be a Kestra's internal storage URI or a list.",
         anyOf = {String.class, List.class, Object.class}
     )
@@ -185,7 +185,7 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
         @io.swagger.v3.oas.annotations.media.Schema(
-            title = "Number of messages published."
+            title = "Number of messages published"
         )
         private final Integer messagesCount;
     }

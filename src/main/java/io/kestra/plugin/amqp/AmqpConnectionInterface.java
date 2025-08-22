@@ -13,27 +13,27 @@ public interface AmqpConnectionInterface {
     Property<String> getUrl();
 
     @Schema(
-        title = "The broker host."
+        title = "The broker host"
     )
     Property<String> getHost();
 
     @Schema(
-        title = "The broker port."
+        title = "The broker port"
     )
     Property<String> getPort();
 
     @Schema(
-        title = "The broker virtual host."
+        title = "The broker virtual host"
     )
     Property<String> getVirtualHost();
 
     @Schema(
-        title = "The broker username."
+        title = "The broker username"
     )
     Property<String> getUsername();
 
     @Schema(
-        title = "The broker password."
+        title = "The broker password"
     )
     Property<String> getPassword();
 }

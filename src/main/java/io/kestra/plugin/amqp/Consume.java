@@ -198,11 +198,11 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
         @Schema(
-            title = "Number of rows consumed."
+            title = "Number of rows consumed"
         )
         private final Integer count;
         @Schema(
-            title = "File URI containing consumed messages."
+            title = "File URI containing consumed messages"
         )
         private final URI uri;
 

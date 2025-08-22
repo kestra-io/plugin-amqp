@@ -7,14 +7,14 @@ import java.time.Duration;
 
 public interface ConsumeInterface extends ConsumeBaseInterface {
     @Schema(
-        title = "The maximum number of rows to fetch before stopping.",
-        description = "It's not an hard limit and is evaluated every second."
+        title = "The maximum number of rows to fetch before stopping",
+        description = "It's not a hard limit and is evaluated every second."
     )
     Property<Integer> getMaxRecords();
 
     @Schema(
-        title = "The maximum duration to wait for new rows.",
-        description = "It's not an hard limit and is evaluated every second."
+        title = "The maximum duration to wait for new rows",
+        description = "It's not a hard limit and is evaluated every second."
     )
     Property<Duration> getMaxDuration();
 }
