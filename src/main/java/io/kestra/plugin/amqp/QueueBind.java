@@ -48,23 +48,23 @@ import java.util.Objects;
 public class QueueBind extends AbstractAmqpConnection implements RunnableTask<QueueBind.Output> {
     @NotNull
     @Schema(
-        title = "The exchange to bind with."
+        title = "The exchange to bind with"
     )
     private Property<String> exchange;
 
     @NotNull
     @Schema(
-        title = "The queue to bind."
+        title = "The queue to bind"
     )
     private Property<String> queue;
 
     @Schema(
-        title = "The routing key to use for the binding."
+        title = "The routing key to use for the binding"
     )
     private Property<String> routingKey;
 
     @Schema(
-        title = "Other properties (binding parameters)."
+        title = "Other properties (binding parameters)"
     )
     private Property<Map<String, Object>> args;
 
@@ -92,11 +92,11 @@ public class QueueBind extends AbstractAmqpConnection implements RunnableTask<Qu
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
         @Schema(
-            title = "The queue name."
+            title = "The queue name"
         )
         private String queue;
         @Schema(
-            title = "The exchange name."
+            title = "The exchange name"
         )
         private String exchange;
     }

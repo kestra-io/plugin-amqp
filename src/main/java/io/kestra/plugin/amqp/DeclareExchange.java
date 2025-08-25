@@ -45,36 +45,36 @@ import java.util.Objects;
 public class DeclareExchange extends AbstractAmqpConnection implements RunnableTask<DeclareExchange.Output> {
     @NotNull
     @Schema(
-        title = "The name of the exchange."
+        title = "The name of the exchange"
     )
     private Property<String> name;
 
     @Builder.Default
     @Schema(
-        title = "The exchange type."
+        title = "The exchange type"
     )
     private Property<BuiltinExchangeType> exchangeType = Property.ofValue(BuiltinExchangeType.DIRECT);
 
     @Builder.Default
     @Schema(
-        title = "Specify if we are declaring a durable exchange (the exchange will survive a server restart)."
+        title = "Specifies if declaring a durable exchange (the exchange will survive a server restart)"
     )
     private Property<Boolean> durability = Property.ofValue(true);
 
     @Builder.Default
     @Schema(
-        title = "Specify if the server should delete the exchange when it is no longer in use."
+        title = "Specifies if the server should delete the exchange when it is no longer in use"
     )
     private Property<Boolean> autoDelete = Property.ofValue(false);
 
     @Builder.Default
     @Schema(
-        title = "Specify if the exchange is internal, i.e. can't be directly published to by a client."
+        title = "Specifies if the exchange is internal, i.e., can't be directly published to by a client"
     )
     private Property<Boolean> internal = Property.ofValue(false);
 
     @Schema(
-        title = "Other properties (construction arguments) for the exchange."
+        title = "Other properties (construction arguments) for the exchange"
     )
     private Property<Map<String, Object>> args;
 
@@ -105,7 +105,7 @@ public class DeclareExchange extends AbstractAmqpConnection implements RunnableT
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
         @Schema(
-            title = "The exchange name."
+            title = "The exchange name"
         )
         private String exchange;
     }

@@ -48,30 +48,30 @@ public class CreateQueue extends AbstractAmqpConnection implements RunnableTask<
 
     @NotNull
     @Schema(
-        title = "The name of the queue."
+        title = "The name of the queue"
     )
     private Property<String> name;
 
     @Builder.Default
     @Schema(
-        title = "Specify if we are declaring a durable queue (the queue will survive a server restart)."
+        title = "Specifies if declaring a durable queue (the queue will survive a server restart)"
     )
     private Property<Boolean> durability = Property.ofValue(true);
 
     @Builder.Default
     @Schema(
-        title = "Specify if we are declaring an exclusive queue (restricted to this connection)."
+        title = "Specifies if declaring an exclusive queue (restricted to this connection)"
     )
     private Property<Boolean> exclusive = Property.ofValue(false);
 
     @Builder.Default
     @Schema(
-        title = "Specify if we are declaring an auto-delete queue (server will delete it when no longer in use)."
+        title = "Specifies if declaring an auto-delete queue (server will delete it when no longer in use)"
     )
     private Property<Boolean> autoDelete = Property.ofValue(false);
 
     @Schema(
-        title = "Other properties (construction arguments) for the queue."
+        title = "Other properties (construction arguments) for the queue"
     )
     private Property<Map<String, Object>> args;
 
@@ -100,7 +100,7 @@ public class CreateQueue extends AbstractAmqpConnection implements RunnableTask<
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
         @Schema(
-            title = "The queue name."
+            title = "The queue name"
         )
         private String queue;
     }
