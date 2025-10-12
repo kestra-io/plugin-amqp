@@ -3,7 +3,9 @@ package io.kestra.plugin.amqp;
 import com.rabbitmq.client.*;
 import io.kestra.core.exceptions.IllegalVariableEvaluationException;
 import io.kestra.core.models.annotations.Example;
+import io.kestra.core.models.annotations.Metric;
 import io.kestra.core.models.annotations.Plugin;
+import io.kestra.core.models.executions.Metric.Type;
 import io.kestra.core.models.executions.metrics.Counter;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
@@ -39,6 +41,7 @@ import static io.kestra.core.utils.Rethrow.throwConsumer;
     examples = {
         @Example(
             full = true,
+            title = "Consume up to 1000 messages from a queue.",
             code = """
                 id: amqp_consume
                 namespace: company.team
@@ -50,6 +53,13 @@ import static io.kestra.core.utils.Rethrow.throwConsumer;
                     queue: kestramqp.queue
                     maxRecords: 1000
                 """
+        )
+    },
+    metrics = {
+        @Metric(
+            name = "records",
+            type = Type.COUNTER,
+            description = "The number of records consumed."
         )
     }
 )
@@ -173,7 +183,7 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
                 );
 
                 // keep thread running
-                while (exception != null && !endSupplier.get()) {
+                while (exception.get() == null && !endSupplier.get()) { // Fixed condition: check exception.get() instead of exception object
                     Thread.sleep(100);
                 }
             } catch (Exception e) {
