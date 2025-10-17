@@ -3,9 +3,8 @@ package io.kestra.plugin.amqp;
 import com.rabbitmq.client.*;
 import io.kestra.core.exceptions.IllegalVariableEvaluationException;
 import io.kestra.core.models.annotations.Example;
-import io.kestra.core.models.annotations.Metric;
 import io.kestra.core.models.annotations.Plugin;
-import io.kestra.core.models.executions.Metric.Type;
+import io.kestra.core.models.annotations.Metric;
 import io.kestra.core.models.executions.metrics.Counter;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
@@ -41,7 +40,6 @@ import static io.kestra.core.utils.Rethrow.throwConsumer;
     examples = {
         @Example(
             full = true,
-            title = "Consume up to 1000 messages from a queue.",
             code = """
                 id: amqp_consume
                 namespace: company.team
@@ -58,8 +56,8 @@ import static io.kestra.core.utils.Rethrow.throwConsumer;
     metrics = {
         @Metric(
             name = "records",
-            type = Type.COUNTER,
-            description = "The number of records consumed."
+            type = Counter.class,
+            description = "The total number of records consumed from the AMQP queue."
         )
     }
 )
@@ -89,6 +87,7 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
         ConnectionFactory factory = this.connectionFactory(runContext);
         var max = runContext.render(this.maxRecords).as(Integer.class).orElse(null);
         var duration = runContext.render(maxDuration).as(Duration.class).orElse(null);
+
         try (
             BufferedOutputStream outputFile = new BufferedOutputStream(new FileOutputStream(tempFile));
             ConsumeThread thread = new ConsumeThread(
@@ -100,7 +99,7 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
                     total.getAndIncrement();
                 }),
                 () -> this.ended(total, started, max, duration)
-            );
+            )
         ) {
             thread.start();
             thread.join();
@@ -109,7 +108,13 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
                 throw thread.getException();
             }
 
-            runContext.metric(Counter.of("records", total.get(), "queue", runContext.render(this.queue).as(String.class).orElse(null)));
+            runContext.metric(Counter.of(
+                "records",
+                total.get(),
+                "queue",
+                runContext.render(this.queue).as(String.class).orElse(null)
+            ));
+
             outputFile.flush();
 
             return Output.builder()
@@ -158,38 +163,45 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
             return this.exception.get();
         }
 
-        @Override
-        public void run() {
-            try {
-                connection = factory.newConnection();
-                channel = connection.createChannel();
+      @Override
+public void run() {
+    try {
+        connection = factory.newConnection();
+        channel = connection.createChannel();
 
-                channel.basicConsume(
-                    runContext.render(consumeInterface.getQueue()).as(String.class).orElseThrow(),
-                    false,
-                    runContext.render(consumeInterface.getConsumerTag()).as(String.class).orElseThrow(),
-                    (consumerTag, message) -> {
-                        try {
-                            consumer.accept(Message.of(message.getBody(), runContext.render(consumeInterface.getSerdeType()).as(SerdeType.class).orElseThrow(), message.getProperties()));
-                            lastDeliveryTag.set(message.getEnvelope().getDeliveryTag());
-                        } catch (Exception e) {
-                            exception.set(e);
-                        }
-                    },
-                    (consumerTag) -> {
-                    },
-                    (consumerTag1, sig) -> {
-                    }
-                );
-
-                // keep thread running
-                while (exception.get() == null && !endSupplier.get()) { // Fixed condition: check exception.get() instead of exception object
-                    Thread.sleep(100);
+        channel.basicConsume(
+            runContext.render(consumeInterface.getQueue()).as(String.class).orElseThrow(),
+            false,
+            runContext.render(consumeInterface.getConsumerTag()).as(String.class).orElseThrow(),
+            (consumerTag, message) -> {
+                try {
+                    consumer.accept(Message.of(
+                        message.getBody(),
+                        runContext.render(consumeInterface.getSerdeType()).as(SerdeType.class).orElseThrow(),
+                        message.getProperties()
+                    ));
+                    lastDeliveryTag.set(message.getEnvelope().getDeliveryTag());
+                } catch (Exception e) {
+                    exception.set(e);
                 }
-            } catch (Exception e) {
-                exception.set(e);
+            },
+            consumerTag -> {},
+            (consumerTag1, sig) -> {}
+        );
+
+        // Safely loop until an exception occurs or end condition is met
+        while (true) {
+            if (exception.get() != null || endSupplier.get()) {
+                break;
             }
+            Thread.sleep(100);
         }
+
+    } catch (Exception e) {
+        exception.set(e);
+    }
+}
+
 
         @Override
         public void close() throws Exception {
@@ -211,10 +223,10 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
             title = "Number of rows consumed"
         )
         private final Integer count;
+
         @Schema(
             title = "File URI containing consumed messages"
         )
         private final URI uri;
-
     }
 }
