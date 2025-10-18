@@ -56,7 +56,7 @@ import static io.kestra.core.utils.Rethrow.throwConsumer;
     metrics = {
         @Metric(
             name = "records",
-            type = Counter.class,
+            type = Counter.TYPE,
             description = "The total number of records consumed from the AMQP queue."
         )
     }
