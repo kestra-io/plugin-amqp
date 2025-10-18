@@ -6,6 +6,7 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import io.kestra.core.exceptions.IllegalVariableEvaluationException;
 import io.kestra.core.models.annotations.Example;
+import io.kestra.core.models.annotations.Metric;
 import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.executions.metrics.Counter;
@@ -63,6 +64,14 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
                         timestamp: '2023-01-09T08:46:33.115456977Z'
                         appId: unit-kestra
                 """
+        )
+    },
+    metrics = {
+        @Metric(
+            name = "published.records",
+            type = Counter.TYPE,
+            unit = "records",
+            description = "Number of messages published to the AMQP exchange"
         )
     }
 )
@@ -140,14 +149,13 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
             channel.close();
 
             // metrics
-            runContext.metric(Counter.of("records", count));
+            runContext.metric(Counter.of("published.records", count));
 
             return Output.builder()
                 .messagesCount(count)
                 .build();
         }
     }
-
 
     private Flux<Integer> buildFlowable(Flux<Message> flowable, Channel channel, RunContext runContext) throws Exception {
         return flowable
