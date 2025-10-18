@@ -191,7 +191,7 @@ public void run() {
 
         // Safely loop until an exception occurs or end condition is met
         while (true) {
-            if (exception.get() != null || endSupplier.get()) {
+            if ((exception != null && exception.get() != null) || endSupplier.get()) {
                 break;
             }
             Thread.sleep(100);
