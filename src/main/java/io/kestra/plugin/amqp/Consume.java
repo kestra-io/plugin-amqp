@@ -3,6 +3,7 @@ package io.kestra.plugin.amqp;
 import com.rabbitmq.client.*;
 import io.kestra.core.exceptions.IllegalVariableEvaluationException;
 import io.kestra.core.models.annotations.Example;
+import io.kestra.core.models.annotations.Metric;
 import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.executions.metrics.Counter;
 import io.kestra.core.models.property.Property;
@@ -51,6 +52,13 @@ import static io.kestra.core.utils.Rethrow.throwConsumer;
                     maxRecords: 1000
                 """
         )
+    },
+    metrics = {
+        @Metric(
+            name = "records",
+            type = Counter.TYPE,
+            description = "The total number of records consumed from the AMQP queue."
+        )
     }
 )
 public class Consume extends AbstractAmqpConnection implements RunnableTask<Consume.Output>, ConsumeInterface {
@@ -98,7 +106,6 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
             if (thread.getException() != null) {
                 throw thread.getException();
             }
-
             runContext.metric(Counter.of("records", total.get(), "queue", runContext.render(this.queue).as(String.class).orElse(null)));
             outputFile.flush();
 
@@ -117,7 +124,6 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
         if (duration != null && ZonedDateTime.now().toEpochSecond() > start.plus(duration).toEpochSecond()) {
             return true;
         }
-
         return false;
     }
 
@@ -167,13 +173,13 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
                         }
                     },
                     (consumerTag) -> {
+                        
                     },
                     (consumerTag1, sig) -> {
+                        
                     }
                 );
-
-                // keep thread running
-                while (exception != null && !endSupplier.get()) {
+                 while (exception != null && !endSupplier.get()) {
                     Thread.sleep(100);
                 }
             } catch (Exception e) {
@@ -201,10 +207,10 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
             title = "Number of rows consumed"
         )
         private final Integer count;
+
         @Schema(
             title = "File URI containing consumed messages"
         )
         private final URI uri;
-
     }
 }
