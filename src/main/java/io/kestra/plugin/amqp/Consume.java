@@ -179,7 +179,7 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
                         
                     }
                 );
-                 while (exception != null && exception.get() != null) || endSupplier.get()) {
+                 while (exception != null && !endSupplier.get()) {
                     Thread.sleep(100);
                 }
             } catch (Exception e) {
