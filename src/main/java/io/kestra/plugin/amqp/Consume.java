@@ -211,13 +211,21 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
         public void close() throws Exception {
             channel.basicCancel(runContext.render(consumeInterface.getConsumerTag()).as(String.class).orElseThrow());
 
-            if (lastDeliveryTag.get() != null) {
-                channel.basicAck(lastDeliveryTag.get(), true);
-            }
+            // await all callbacks finish
+            await()
+                .pollDelay(Duration.ofMillis(200))
+                .atMost(Duration.ofSeconds(2))
+                .until(() -> exception.get() != null || endSupplier.get());
 
-            channel.close();
-            connection.close();
+            // close properly
+            if (channel.isOpen()) {
+                channel.close();
+            }
+            if (connection.isOpen()) {
+                connection.close();
+            }
         }
+
     }
 
     @Builder
