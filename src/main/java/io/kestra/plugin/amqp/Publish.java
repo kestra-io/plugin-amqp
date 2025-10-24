@@ -8,29 +8,22 @@ import io.kestra.core.exceptions.IllegalVariableEvaluationException;
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Metric;
 import io.kestra.core.models.annotations.Plugin;
-import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.executions.metrics.Counter;
+import io.kestra.core.models.property.Data;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
-import io.kestra.core.serializers.FileSerde;
 import io.kestra.core.serializers.JacksonMapper;
 import io.kestra.plugin.amqp.models.Message;
 import io.kestra.plugin.amqp.models.SerdeType;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
-
-import jakarta.validation.constraints.NotNull;
 import reactor.core.publisher.Flux;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.URI;
 import java.sql.Date;
-import java.util.List;
-import java.util.Map;
 
 import static io.kestra.core.utils.Rethrow.throwFunction;
 
@@ -75,7 +68,7 @@ import static io.kestra.core.utils.Rethrow.throwFunction;
         )
     }
 )
-public class Publish extends AbstractAmqpConnection implements RunnableTask<Publish.Output> {
+public class Publish extends AbstractAmqpConnection implements RunnableTask<Publish.Output>, Data.From {
     @NotNull
     @Schema(
         title = "The exchange to publish the message to"
@@ -87,12 +80,11 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
     )
     private Property<String> routingKey;
 
-    @PluginProperty(dynamic = true)
     @NotNull
     @Schema(
-        title = "The source of the data published",
-        description = "It can be a Kestra's internal storage URI or a list.",
-        anyOf = {String.class, List.class, Object.class}
+        title = io.kestra.core.models.property.Data.From.TITLE,
+        description = io.kestra.core.models.property.Data.From.DESCRIPTION,
+        anyOf = {String.class, Message[].class, Message.class}
     )
     private Object from;
 
@@ -103,52 +95,19 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
     public Publish.Output run(RunContext runContext) throws Exception {
         ConnectionFactory factory = this.connectionFactory(runContext);
 
-        try (Connection connection = factory.newConnection()) {
-            Channel channel = connection.createChannel();
+        try (Connection connection = factory.newConnection();
+             Channel channel = connection.createChannel()) {
 
-            Integer count = 1;
-            Flux<Message> flowable;
-            Flux<Integer> resultFlowable;
+            Integer count = io.kestra.core.models.property.Data.from(from)
+                .readAs(runContext, Message.class, msg -> JacksonMapper.toMap(msg, Message.class))
+                .map(throwFunction(message -> {
+                    publish(channel, message, runContext);
+                    return 1;
+                }))
+                .reduce(Integer::sum)
+                .blockOptional()
+                .orElse(0);
 
-            if (this.from instanceof String fromStr) {
-                String renderedFrom = runContext.render(fromStr);
-                URI from = new URI(renderedFrom);
-
-                if (!from.getScheme().equals("kestra")) {
-                    throw new Exception("Invalid 'from' parameter, must be a Kestra internal storage URI");
-                }
-
-                try (BufferedReader inputStream = new BufferedReader(new InputStreamReader(runContext.storage().getFile(from)))) {
-                    flowable = FileSerde.readAll(inputStream, Message.class);
-                    resultFlowable = this.buildFlowable(flowable, channel, runContext);
-
-                    count = resultFlowable.reduce(Integer::sum).blockOptional().orElse(0);
-                }
-
-            } else if (this.from instanceof List) {
-                flowable = Flux.fromArray(((List<?>) this.from)
-                    .stream()
-                    .map(throwFunction(row -> {
-                        if (row instanceof Map) {
-                            return runContext.render((Map<String, Object>) row);
-                        } else if (row instanceof String) {
-                            return runContext.render((String) row);
-                        } else {
-                            return row;
-                        }
-                    })).toArray())
-                    .map(o -> JacksonMapper.toMap(o, Message.class));
-
-                resultFlowable = this.buildFlowable(flowable, channel, runContext);
-
-                count = resultFlowable.reduce(Integer::sum).blockOptional().orElse(0);
-            } else {
-                publish(channel, JacksonMapper.toMap(runContext.render((Map<String, Object>) this.from), Message.class), runContext);
-            }
-
-            channel.close();
-
-            // metrics
             runContext.metric(Counter.of("published.records", count));
 
             return Output.builder()

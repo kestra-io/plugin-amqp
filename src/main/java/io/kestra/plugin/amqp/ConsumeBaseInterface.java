@@ -1,6 +1,5 @@
 package io.kestra.plugin.amqp;
 
-import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.property.Property;
 import io.kestra.plugin.amqp.models.SerdeType;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -19,6 +18,11 @@ public interface ConsumeBaseInterface {
     @NotNull
     Property<String> getConsumerTag();
 
+    @Schema(
+        title = "Serialization format",
+        description = "Defines how message payloads are serialized or deserialized. " +
+            "Use STRING for plain text or JSON for structured data."
+    )
     @NotNull
     Property<SerdeType> getSerdeType();
 }

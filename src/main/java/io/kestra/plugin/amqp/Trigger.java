@@ -49,16 +49,23 @@ import java.util.Optional;
     }
 )
 public class Trigger extends AbstractTrigger implements PollingTriggerInterface, TriggerOutput<Consume.Output>, ConsumeInterface, AmqpConnectionInterface {
+
     @Builder.Default
     private final Duration interval = Duration.ofSeconds(60);
+
     @Deprecated
     private Property<String> url;
+
     @NotNull
     private Property<String> host;
+
     @Builder.Default
     private Property<String> port = Property.ofValue("5672");
+
     private Property<String> username;
+
     private Property<String> password;
+
     @Builder.Default
     private Property<String> virtualHost = Property.ofValue("/");
 
