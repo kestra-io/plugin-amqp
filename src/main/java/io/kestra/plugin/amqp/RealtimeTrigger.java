@@ -60,14 +60,20 @@ import java.util.concurrent.atomic.AtomicReference;
     }
 )
 public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerInterface, TriggerOutput<Message>, ConsumeBaseInterface, AmqpConnectionInterface {
+
     @Deprecated
     private Property<String> url;
+
     @NotNull
     private Property<String> host;
+
     @Builder.Default
     private Property<String> port = Property.ofValue("5672");
+
     private Property<String> username;
+
     private Property<String> password;
+
     @Builder.Default
     private Property<String> virtualHost = Property.ofValue("/");
 

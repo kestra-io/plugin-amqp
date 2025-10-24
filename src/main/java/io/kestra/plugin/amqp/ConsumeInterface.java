@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Duration;
 
 public interface ConsumeInterface extends ConsumeBaseInterface {
+
     @Schema(
         title = "Maximum number of records",
         description = "The maximum number of messages to consume before stopping. " +
