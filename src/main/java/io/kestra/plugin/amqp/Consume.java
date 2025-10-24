@@ -162,6 +162,7 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
         @Override
         public void run() {
             try {
+
                 connection = factory.newConnection();
                 channel = connection.createChannel();
 
@@ -170,6 +171,7 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
                     false,
                     runContext.render(consumeInterface.getConsumerTag()).as(String.class).orElseThrow(),
                     (consumerTag, message) -> {
+                        long deliveryTag = message.getEnvelope().getDeliveryTag();
                         try {
                             consumer.accept(Message.of(
                                 message.getBody(),
@@ -178,12 +180,15 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
                             ));
 
                             // individual ACK
-                            channel.basicAck(message.getEnvelope().getDeliveryTag(), false);
-                            lastDeliveryTag.set(message.getEnvelope().getDeliveryTag());
+                            channel.basicAck(deliveryTag, false);
+                            lastDeliveryTag.set(deliveryTag);
+
+                            runContext.logger().debug("Received message with tag {}", deliveryTag);
+                            runContext.logger().debug("ACKed message {}", deliveryTag);
                         } catch (Exception e) {
                             // do a NACK to redeliver
                             try {
-                                channel.basicNack(message.getEnvelope().getDeliveryTag(), false, true);
+                                channel.basicNack(deliveryTag, false, true);
                             } catch (IOException ioException) {
                                 runContext.logger().warn("Failed to NACK message", ioException);
                             }
@@ -224,8 +229,9 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
             if (connection.isOpen()) {
                 connection.close();
             }
-        }
 
+            runContext.logger().debug("Closing consumer, last delivery tag: {}", lastDeliveryTag.get());
+        }
     }
 
     @Builder
