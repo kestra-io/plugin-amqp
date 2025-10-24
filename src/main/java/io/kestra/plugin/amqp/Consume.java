@@ -20,6 +20,7 @@ import lombok.experimental.SuperBuilder;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.net.URI;
 import java.time.Duration;
 import java.time.ZonedDateTime;
@@ -170,9 +171,22 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
                     runContext.render(consumeInterface.getConsumerTag()).as(String.class).orElseThrow(),
                     (consumerTag, message) -> {
                         try {
-                            consumer.accept(Message.of(message.getBody(), runContext.render(consumeInterface.getSerdeType()).as(SerdeType.class).orElseThrow(), message.getProperties()));
+                            consumer.accept(Message.of(
+                                message.getBody(),
+                                runContext.render(consumeInterface.getSerdeType()).as(SerdeType.class).orElseThrow(),
+                                message.getProperties()
+                            ));
+
+                            // individual ACK
+                            channel.basicAck(message.getEnvelope().getDeliveryTag(), false);
                             lastDeliveryTag.set(message.getEnvelope().getDeliveryTag());
                         } catch (Exception e) {
+                            // do a NACK to redeliver
+                            try {
+                                channel.basicNack(message.getEnvelope().getDeliveryTag(), false, true);
+                            } catch (IOException ioException) {
+                                runContext.logger().warn("Failed to NACK message", ioException);
+                            }
                             exception.set(e);
                         }
                     },
@@ -186,7 +200,6 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
 
                 await()
                     .pollInterval(Duration.ofMillis(100))
-                    .forever() // maxRecords or maxDuration will fix the limit
                     .until(() -> exception.get() != null || endSupplier.get());
 
             } catch (Exception e) {
