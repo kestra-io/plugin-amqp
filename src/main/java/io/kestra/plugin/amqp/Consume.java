@@ -64,7 +64,7 @@ import static org.awaitility.Awaitility.await;
     },
     metrics = {
         @Metric(
-            name = "records",
+            name = "consumed.records",
             type = Counter.TYPE,
             description = "The total number of records consumed from the AMQP queue."
         )
@@ -117,7 +117,7 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
                 throw thread.getException();
             }
 
-            runContext.metric(Counter.of("records", total.get(),
+            runContext.metric(Counter.of("consumed.records", total.get(),
                 "queue", runContext.render(this.queue).as(String.class).orElse(null)));
 
             outputFile.flush();
