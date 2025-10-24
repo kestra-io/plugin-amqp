@@ -1,7 +1,8 @@
 package io.kestra.plugin.amqp;
 
-import com.rabbitmq.client.*;
-import io.kestra.core.exceptions.IllegalVariableEvaluationException;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Metric;
 import io.kestra.core.models.annotations.Plugin;
@@ -16,7 +17,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
-import java.io.*;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.net.URI;
 import java.time.Duration;
 import java.time.ZonedDateTime;
@@ -26,6 +29,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import static io.kestra.core.utils.Rethrow.throwConsumer;
+import static org.awaitility.Awaitility.await;
 
 @SuperBuilder
 @ToString
@@ -173,15 +177,18 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
                         }
                     },
                     (consumerTag) -> {
-                        
+
                     },
                     (consumerTag1, sig) -> {
-                        
+
                     }
                 );
-                 while (exception != null && !endSupplier.get()) {
-                    Thread.sleep(100);
-                }
+
+                await()
+                    .pollInterval(Duration.ofMillis(100))
+                    .forever() // maxRecords or maxDuration will fix the limit
+                    .until(() -> exception.get() != null || endSupplier.get());
+
             } catch (Exception e) {
                 exception.set(e);
             }
