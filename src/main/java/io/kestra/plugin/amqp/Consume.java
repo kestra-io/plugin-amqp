@@ -57,7 +57,7 @@ import static org.awaitility.Awaitility.await;
                     username: guest
                     password: guest
                     virtualHost: /my_vhost
-                    queue: kestra.queue
+                    queue: kestramqp.queue
                     maxRecords: 1000
                 """
         )

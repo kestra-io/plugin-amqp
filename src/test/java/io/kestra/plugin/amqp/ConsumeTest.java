@@ -2,6 +2,7 @@ package io.kestra.plugin.amqp;
 
 import io.kestra.core.models.property.Property;
 import io.kestra.core.serializers.FileSerde;
+import io.kestra.core.utils.IdUtils;
 import io.kestra.plugin.amqp.models.Message;
 import io.kestra.plugin.amqp.models.SerdeType;
 import org.junit.jupiter.api.Test;
@@ -22,8 +23,11 @@ class ConsumeTest extends AbstractTest {
         var publishOutput = publish();
         assertThat(publishOutput, is(notNullValue()));
 
+        // Unique ID suffix to isolate this test run
+        String idSuffix = IdUtils.create();
+
         var consume = Consume.builder()
-            .id("consumeTest")
+            .id("consumeTest-" + idSuffix)
             .type(Consume.class.getName())
             .host(Property.ofValue("localhost"))
             .port(Property.ofValue("5672"))
@@ -31,7 +35,7 @@ class ConsumeTest extends AbstractTest {
             .password(Property.ofValue("guest"))
             .virtualHost(Property.ofValue("/my_vhost"))
             .queue(Property.ofValue("amqpTest.queue"))
-            .consumerTag(Property.ofValue("KestraConsumeTest"))
+            .consumerTag(Property.ofValue("KestraConsumeTest-" + idSuffix))
             .serdeType(Property.ofValue(SerdeType.STRING))
             .maxRecords(Property.ofValue(2))
             .maxDuration(Property.ofValue(Duration.ofSeconds(3)))
@@ -63,8 +67,11 @@ class ConsumeTest extends AbstractTest {
     void shouldStopAfterMaxRecords() throws Exception {
         publish();
 
+        // Unique ID suffix to isolate this test run
+        String idSuffix = IdUtils.create();
+
         var consume = Consume.builder()
-            .id("consumeLimit")
+            .id("consumeLimit-" + idSuffix)
             .type(Consume.class.getName())
             .host(Property.ofValue("localhost"))
             .port(Property.ofValue("5672"))
@@ -72,6 +79,7 @@ class ConsumeTest extends AbstractTest {
             .password(Property.ofValue("guest"))
             .virtualHost(Property.ofValue("/my_vhost"))
             .queue(Property.ofValue("amqpTest.queue"))
+            .consumerTag(Property.ofValue("KestraConsumeTest-" + idSuffix))
             .serdeType(Property.ofValue(SerdeType.STRING))
             .maxRecords(Property.ofValue(1)) // only 1 message
             .build();
