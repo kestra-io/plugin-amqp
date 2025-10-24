@@ -52,8 +52,12 @@ import static org.awaitility.Awaitility.await;
                 tasks:
                   - id: consume
                     type: io.kestra.plugin.amqp.Consume
-                    url: amqp://guest:guest@localhost:5672/my_vhost
-                    queue: kestramqp.queue
+                    host: localhost
+                    port: 5672
+                    username: guest
+                    password: guest
+                    virtualHost: /my_vhost
+                    queue: kestra.queue
                     maxRecords: 1000
                 """
         )
@@ -90,8 +94,9 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
         }
 
         ConnectionFactory factory = this.connectionFactory(runContext);
-        var max = runContext.render(this.maxRecords).as(Integer.class).orElse(null);
-        var duration = runContext.render(maxDuration).as(Duration.class).orElse(null);
+        var rMaxRecords = runContext.render(this.maxRecords).as(Integer.class).orElse(null);
+        var rMaxDuration = runContext.render(maxDuration).as(Duration.class).orElse(null);
+
         try (
             BufferedOutputStream outputFile = new BufferedOutputStream(new FileOutputStream(tempFile));
             ConsumeThread thread = new ConsumeThread(
@@ -102,8 +107,8 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
                     FileSerde.write(outputFile, message);
                     total.getAndIncrement();
                 }),
-                () -> this.ended(total, started, max, duration)
-            );
+                () -> this.ended(total, started, rMaxRecords, rMaxDuration)
+            )
         ) {
             thread.start();
             thread.join();
@@ -111,7 +116,10 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
             if (thread.getException() != null) {
                 throw thread.getException();
             }
-            runContext.metric(Counter.of("records", total.get(), "queue", runContext.render(this.queue).as(String.class).orElse(null)));
+
+            runContext.metric(Counter.of("records", total.get(),
+                "queue", runContext.render(this.queue).as(String.class).orElse(null)));
+
             outputFile.flush();
 
             return Output.builder()
@@ -122,11 +130,12 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
     }
 
     @SuppressWarnings("RedundantIfStatement")
-    private boolean ended(AtomicInteger count, ZonedDateTime start, Integer max, Duration duration) {
-        if (max != null && count.get() >= max) {
+    private boolean ended(AtomicInteger count, ZonedDateTime start, Integer maxRecords, Duration maxDuration) {
+        // Returns true if maxRecords or maxDuration reached
+        if (maxRecords != null && count.get() >= maxRecords) {
             return true;
         }
-        if (duration != null && ZonedDateTime.now().toEpochSecond() > start.plus(duration).toEpochSecond()) {
+        if (maxDuration != null && ZonedDateTime.now().toEpochSecond() > start.plus(maxDuration).toEpochSecond()) {
             return true;
         }
         return false;
@@ -145,7 +154,11 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
         private Connection connection;
         private Channel channel;
 
-        public ConsumeThread(ConnectionFactory factory, RunContext runContext, ConsumeBaseInterface consumeInterface, Consumer<Message> consumer, Supplier<Boolean> supplier) {
+        public ConsumeThread(ConnectionFactory factory,
+                             RunContext runContext,
+                             ConsumeBaseInterface consumeInterface,
+                             Consumer<Message> consumer,
+                             Supplier<Boolean> supplier) {
             super("amqp-consume");
             this.setDaemon(true);
             this.factory = factory;
@@ -162,10 +175,10 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
         @Override
         public void run() {
             try {
-
                 connection = factory.newConnection();
                 channel = connection.createChannel();
 
+                // Start consuming messages
                 channel.basicConsume(
                     runContext.render(consumeInterface.getQueue()).as(String.class).orElseThrow(),
                     false,
@@ -173,20 +186,37 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
                     (consumerTag, message) -> {
                         long deliveryTag = message.getEnvelope().getDeliveryTag();
                         try {
+                            // Skip messages if stop condition is already reached
+                            if (endSupplier.get()) {
+                                runContext.logger().debug("Message ignored because stop condition already reached");
+                                channel.basicNack(deliveryTag, false, true);
+                                return;
+                            }
+
                             consumer.accept(Message.of(
                                 message.getBody(),
                                 runContext.render(consumeInterface.getSerdeType()).as(SerdeType.class).orElseThrow(),
                                 message.getProperties()
                             ));
 
-                            // individual ACK
                             channel.basicAck(deliveryTag, false);
                             lastDeliveryTag.set(deliveryTag);
 
-                            runContext.logger().debug("Received message with tag {}", deliveryTag);
-                            runContext.logger().debug("ACKed message {}", deliveryTag);
+                            runContext.logger().debug("Received and ACKed message {}", deliveryTag);
+
+                            // Check stop condition after ACK
+                            if (endSupplier.get()) {
+                                runContext.logger().debug("Stop condition reached, cancelling consumer {}", consumerTag);
+                                try {
+                                    channel.basicCancel(consumerTag);
+                                } catch (IOException cancelError) {
+                                    // Ignore if already cancelled
+                                    if (!cancelError.getMessage().contains("Unknown consumerTag")) {
+                                        runContext.logger().warn("Error while cancelling consumer", cancelError);
+                                    }
+                                }
+                            }
                         } catch (Exception e) {
-                            // do a NACK to redeliver
                             try {
                                 channel.basicNack(deliveryTag, false, true);
                             } catch (IOException ioException) {
@@ -195,14 +225,13 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
                             exception.set(e);
                         }
                     },
-                    (consumerTag) -> {
-
-                    },
-                    (consumerTag1, sig) -> {
-
-                    }
+                    consumerTag ->
+                        runContext.logger().debug("Consumer {} cancelled", consumerTag),
+                    (consumerTag, shutdownSignalException) ->
+                        runContext.logger().debug("Consumer {} shutdown signal: {}", consumerTag, shutdownSignalException.getMessage())
                 );
 
+                // Wait until stop condition or exception
                 await()
                     .pollInterval(Duration.ofMillis(100))
                     .until(() -> exception.get() != null || endSupplier.get());
@@ -214,37 +243,47 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
 
         @Override
         public void close() throws Exception {
-            channel.basicCancel(runContext.render(consumeInterface.getConsumerTag()).as(String.class).orElseThrow());
+            try {
+                // Try to cancel, but if already cancelled, ignore the error
+                channel.basicCancel(runContext.render(consumeInterface.getConsumerTag())
+                    .as(String.class).orElseThrow());
+            } catch (IOException e) {
+                // Ignore 'Unknown consumerTag' since it means the consumer was already cancelled
+                if (!e.getMessage().contains("Unknown consumerTag")) {
+                    runContext.logger().warn("Error during consumer cancellation", e);
+                }
+            }
 
-            // await all callbacks finish
+            // Wait for callbacks to finish
             await()
                 .pollDelay(Duration.ofMillis(200))
                 .atMost(Duration.ofSeconds(2))
                 .until(() -> exception.get() != null || endSupplier.get());
 
-            // close properly
-            if (channel.isOpen()) {
+            // Safely close channel and connection
+            try {
                 channel.close();
-            }
-            if (connection.isOpen()) {
-                connection.close();
+            } catch (Exception e) {
+                runContext.logger().debug("Channel already closed or failed to close cleanly", e);
             }
 
-            runContext.logger().debug("Closing consumer, last delivery tag: {}", lastDeliveryTag.get());
+            try {
+                connection.close();
+            } catch (Exception e) {
+                runContext.logger().debug("Connection already closed or failed to close cleanly", e);
+            }
+
+            runContext.logger().debug("Consumer closed, last delivery tag: {}", lastDeliveryTag.get());
         }
     }
 
     @Builder
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
-        @Schema(
-            title = "Number of rows consumed"
-        )
+        @Schema(title = "Number of rows consumed")
         private final Integer count;
 
-        @Schema(
-            title = "File URI containing consumed messages"
-        )
+        @Schema(title = "File URI containing consumed messages")
         private final URI uri;
     }
 }
