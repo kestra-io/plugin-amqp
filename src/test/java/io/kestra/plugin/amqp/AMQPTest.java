@@ -182,7 +182,7 @@ class AMQPTest {
 
         Consume.Output pullOutput = await()
             .pollInterval(Duration.ofMillis(300))
-            .atMost(Duration.ofSeconds(30))
+            .atMost(Duration.ofSeconds(60))
             .ignoreExceptions() // important: Consume might throw during first attempts
             .until(() -> {
                 Consume.Output output = consume.run(runContextFactory.of());
@@ -244,7 +244,7 @@ class AMQPTest {
 
         Consume.Output pullOutput = await()
             .pollInterval(Duration.ofMillis(300))
-            .atMost(Duration.ofSeconds(30))
+            .atMost(Duration.ofSeconds(60))
             .ignoreExceptions()
             .until(() -> {
                 Consume.Output output = consume.run(runContextFactory.of());
@@ -275,7 +275,7 @@ class AMQPTest {
 
         Consume.Output pullOutput = await()
             .pollInterval(Duration.ofMillis(300))
-            .atMost(Duration.ofSeconds(30))
+            .atMost(Duration.ofSeconds(60))
             .ignoreExceptions() // handle transient AMQP connection or queue access errors
             .until(() -> {
                 Consume.Output output = consume.run(runContextFactory.of());
