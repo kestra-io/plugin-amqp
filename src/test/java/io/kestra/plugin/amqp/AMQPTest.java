@@ -108,6 +108,7 @@ class AMQPTest {
     void createConnectionFactoryWithUriAndHostBothDefined() {
         Publish push = Publish.builder()
             .url(Property.ofValue("amqp://example.org"))
+            .host(Property.ofValue("ignore.it"))
             .build();
 
         assertThrows(IllegalArgumentException.class, () -> push.connectionFactory(runContextFactory.of()));
@@ -144,12 +145,14 @@ class AMQPTest {
             .virtualHost(Property.ofValue("/my_vhost"))
             .exchange(Property.ofValue("kestramqp.exchange"))
             .queue(Property.ofValue("kestramqp.queue"))
+            .routingKey(Property.ofValue("kestramqp.queue"))
             .build()
             .run(runContextFactory.of());
 
         Publish push = Publish.builder()
             .url(Property.ofValue("amqp://guest:guest@localhost:5672/my_vhost"))
             .exchange(Property.ofValue("kestramqp.exchange"))
+            .routingKey(Property.ofValue("kestramqp.queue"))
             .from(Arrays.asList(
                 JacksonMapper.toMap(Message.builder()
                     .headers(ImmutableMap.of("testHeader", "KestraTest"))
