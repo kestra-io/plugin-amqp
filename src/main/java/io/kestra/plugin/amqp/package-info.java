@@ -1,5 +1,5 @@
 @PluginSubGroup(
-    description = "This sub-group of plugins contains tasks for using a RabbitMQ broker.",
+    description = "This sub-group of plugins contains tasks to use a RabbitMQ broker.",
     categories = PluginSubGroup.PluginCategory.MESSAGING
 )
 package io.kestra.plugin.amqp;

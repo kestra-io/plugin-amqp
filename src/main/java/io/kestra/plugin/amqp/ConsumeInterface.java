@@ -6,15 +6,19 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Duration;
 
 public interface ConsumeInterface extends ConsumeBaseInterface {
+
     @Schema(
-        title = "The maximum number of rows to fetch before stopping",
-        description = "It's not a hard limit and is evaluated every second."
+        title = "Maximum number of records",
+        description = "The maximum number of messages to consume before stopping. " +
+            "This is a soft limit evaluated after each message."
     )
     Property<Integer> getMaxRecords();
 
     @Schema(
-        title = "The maximum duration to wait for new rows",
-        description = "It's not a hard limit and is evaluated every second."
+        title = "Maximum duration",
+        description = "The maximum duration the consumer will run before stopping. " +
+            "This is a soft limit evaluated approximately every 100 milliseconds, " +
+            "so the actual duration may slightly exceed this value."
     )
     Property<Duration> getMaxDuration();
 }
