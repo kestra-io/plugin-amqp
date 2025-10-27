@@ -36,7 +36,11 @@ import java.util.Objects;
                 tasks:
                   - id: declare_exchange
                     type: io.kestra.plugin.amqp.DeclareExchange
-                    url: amqp://guest:guest@localhost:5672/my_vhost
+                    host: localhost
+                    port: 5672
+                    username: guest
+                    password: guest
+                    virtualHost: /my_vhost
                     name: kestramqp.exchange
                 """
         )

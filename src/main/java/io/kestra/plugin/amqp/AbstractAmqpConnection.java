@@ -20,14 +20,20 @@ import java.net.URISyntaxException;
 @Getter
 @NoArgsConstructor
 public abstract class AbstractAmqpConnection extends Task implements AmqpConnectionInterface {
+
     @Deprecated
     private Property<String> url;
+
     @NotNull
     private Property<String> host;
+
     @Builder.Default
     private Property<String> port = Property.ofValue("5672");
+
     private Property<String> username;
+
     private Property<String> password;
+
     @Builder.Default
     private Property<String> virtualHost = Property.ofValue("/");
 

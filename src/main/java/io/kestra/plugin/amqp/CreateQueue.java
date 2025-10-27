@@ -38,7 +38,11 @@ import java.util.Map;
                 tasks:
                   - id: create_queue
                     type: io.kestra.plugin.amqp.CreateQueue
-                    url: amqp://guest:guest@localhost:5672/my_vhost
+                    host: localhost
+                    port: 5672
+                    username: guest
+                    password: guest
+                    virtualHost: /my_vhost
                     name: kestramqp.queue
                 """
         )
