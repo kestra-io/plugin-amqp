@@ -95,7 +95,7 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
 
         ConnectionFactory factory = this.connectionFactory(runContext);
         var rMaxRecords = runContext.render(this.maxRecords).as(Integer.class).orElse(null);
-        var rMaxDuration = runContext.render(maxDuration).as(Duration.class).orElse(null);
+        var rMaxDuration = runContext.render(this.maxDuration).as(Duration.class).orElse(null);
 
         try (
             BufferedOutputStream outputFile = new BufferedOutputStream(new FileOutputStream(tempFile));

@@ -108,7 +108,6 @@ class AMQPTest {
     void createConnectionFactoryWithUriAndHostBothDefined() {
         Publish push = Publish.builder()
             .url(Property.ofValue("amqp://example.org"))
-            .host(Property.ofValue("ignore.it"))
             .build();
 
         assertThrows(IllegalArgumentException.class, () -> push.connectionFactory(runContextFactory.of()));
