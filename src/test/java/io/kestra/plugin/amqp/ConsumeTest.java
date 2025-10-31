@@ -88,4 +88,66 @@ class ConsumeTest extends AbstractTest {
         assertThat(output, is(notNullValue()));
         assertThat(output.getCount(), equalTo(1));
     }
+
+    @Test
+    void shouldSuccessWithLessMessagesThanMaxRecords() throws Exception {
+        publish();
+
+        String idSuffix = IdUtils.create();
+
+        var consume = Consume.builder()
+            .id("consume-" + idSuffix)
+            .type(Consume.class.getName())
+            .host(Property.ofValue("localhost"))
+            .port(Property.ofValue("5672"))
+            .username(Property.ofValue("guest"))
+            .password(Property.ofValue("guest"))
+            .virtualHost(Property.ofValue("/my_vhost"))
+            .queue(Property.ofValue("amqpTest.queue"))
+            .consumerTag(Property.ofValue("KestraConsumeTest-" + idSuffix))
+            .serdeType(Property.ofValue(SerdeType.STRING))
+            .maxRecords(Property.ofValue(100))
+            .maxDuration(Property.ofValue(Duration.ofSeconds(10)))
+            .build();
+
+        var output = consume.run(runContextFactory.of());
+
+        assertThat(output, is(notNullValue()));
+        assertThat(output.getCount(), greaterThanOrEqualTo(1));
+    }
+
+    @Test
+    void shouldSuccessWhenQueueIsEmptyWithMaxRecords() throws Exception {
+        var createQueue = CreateQueue.builder()
+            .host(Property.ofValue("localhost"))
+            .port(Property.ofValue("5672"))
+            .username(Property.ofValue("guest"))
+            .password(Property.ofValue("guest"))
+            .virtualHost(Property.ofValue("/my_vhost"))
+            .name(Property.ofValue("empty-queue"))
+            .build();
+
+        createQueue.run(runContextFactory.of());
+
+        String idSuffix = IdUtils.create();
+
+        var consume = Consume.builder()
+            .id("consumeEmpty-" + idSuffix)
+            .type(Consume.class.getName())
+            .host(Property.ofValue("localhost"))
+            .port(Property.ofValue("5672"))
+            .username(Property.ofValue("guest"))
+            .password(Property.ofValue("guest"))
+            .virtualHost(Property.ofValue("/my_vhost"))
+            .queue(Property.ofValue("empty-queue"))
+            .consumerTag(Property.ofValue("KestraConsumeTest-" + idSuffix))
+            .serdeType(Property.ofValue(SerdeType.STRING))
+            .maxDuration(Property.ofValue(Duration.ofSeconds(5)))
+            .maxRecords(Property.ofValue(100))
+            .build();
+
+        var output = consume.run(runContextFactory.of());
+        assertThat(output, is(notNullValue()));
+        assertThat(output.getCount(), equalTo(0));
+    }
 }

@@ -16,6 +16,7 @@ import io.kestra.plugin.amqp.models.SerdeType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import org.awaitility.core.ConditionTimeoutException;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -232,9 +233,18 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
                 );
 
                 // Wait until stop condition or exception
-                await()
-                    .pollInterval(Duration.ofMillis(100))
-                    .until(() -> exception.get() != null || endSupplier.get());
+                try {
+                    if (!endSupplier.get()) {
+                        await()
+                            .pollInterval(Duration.ofMillis(100))
+                            .atMost(Duration.ofMinutes(1))
+                            .until(() -> exception.get() != null || endSupplier.get());
+                    }
+                } catch (ConditionTimeoutException e) {
+                    runContext.logger().debug("No messages to process or end condition not reached within timeout, closing the connection");
+                } catch (Exception e) {
+                    exception.set(e);
+                }
 
             } catch (Exception e) {
                 exception.set(e);
