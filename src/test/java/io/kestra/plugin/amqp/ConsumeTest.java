@@ -129,7 +129,7 @@ class ConsumeTest extends AbstractTest {
 
         createQueue.run(runContextFactory.of());
 
-        String idSuffix = IdUtils.create();
+        var idSuffix = IdUtils.create();
 
         var consume = Consume.builder()
             .id("consumeEmpty-" + idSuffix)
