@@ -1,0 +1,8 @@
+group: io.kestra.plugin.amqp
+name: "amqp"
+title: "AMQP"
+description: "This sub-group of plugins contains tasks to use a RabbitMQ broker."
+body: ""
+videos: []
+createdBy: "Kestra Core Team"
+managedBy: "Kestra Core Team"
