@@ -60,8 +60,6 @@ dependencies {
 
     // amqp
     api group: 'com.rabbitmq', name: 'amqp-client', version: '5.27.0'
-
-    implementation 'org.awaitility:awaitility:4.3.0'
 }
 
 
