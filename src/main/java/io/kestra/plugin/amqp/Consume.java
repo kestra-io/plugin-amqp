@@ -11,12 +11,12 @@ import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.serializers.FileSerde;
+import io.kestra.core.utils.Await;
 import io.kestra.plugin.amqp.models.Message;
 import io.kestra.plugin.amqp.models.SerdeType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
-import org.awaitility.core.ConditionTimeoutException;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -25,13 +25,13 @@ import java.io.IOException;
 import java.net.URI;
 import java.time.Duration;
 import java.time.ZonedDateTime;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import static io.kestra.core.utils.Rethrow.throwConsumer;
-import static org.awaitility.Awaitility.await;
 
 @SuperBuilder
 @ToString
@@ -235,12 +235,12 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
                 // Wait until stop condition or exception
                 try {
                     if (!endSupplier.get()) {
-                        await()
-                            .pollInterval(Duration.ofMillis(100))
-                            .atMost(Duration.ofMinutes(1))
-                            .until(() -> exception.get() != null || endSupplier.get());
+                        Await.until(() -> exception.get() != null || endSupplier.get(),
+                            Duration.ofMillis(100),
+                            Duration.ofMinutes(1)
+                        );
                     }
-                } catch (ConditionTimeoutException e) {
+                } catch (TimeoutException e) {
                     runContext.logger().debug("No messages to process or end condition not reached within timeout, closing the connection");
                 } catch (Exception e) {
                     exception.set(e);
@@ -265,10 +265,14 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
             }
 
             // Wait for callbacks to finish
-            await()
-                .pollDelay(Duration.ofMillis(200))
-                .atMost(Duration.ofSeconds(2))
-                .until(() -> exception.get() != null || endSupplier.get());
+            try {
+                Await.until(() -> exception.get() != null || endSupplier.get(),
+                    Duration.ofMillis(200),
+                    Duration.ofSeconds(2)
+                );
+            } catch (TimeoutException e) {
+                runContext.logger().debug("Consumer shutdown wait timed out after 2 seconds.");
+            }
 
             // Safely close channel and connection
             try {

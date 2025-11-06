@@ -11,6 +11,7 @@ import io.kestra.core.serializers.FileSerde;
 import io.kestra.core.serializers.JacksonMapper;
 import io.kestra.core.storages.StorageInterface;
 import io.kestra.core.tenant.TenantService;
+import io.kestra.core.utils.Await;
 import io.kestra.core.utils.IdUtils;
 import io.kestra.plugin.amqp.models.Message;
 import io.kestra.plugin.amqp.models.SerdeType;
@@ -27,8 +28,8 @@ import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.concurrent.TimeoutException;
 
-import static org.awaitility.Awaitility.await;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -180,15 +181,25 @@ class AMQPTest {
             .maxDuration(Property.ofValue(Duration.ofSeconds(3)))
             .build();
 
-        Consume.Output pullOutput = await()
-            .pollInterval(Duration.ofMillis(300))
-            .atMost(Duration.ofSeconds(60))
-            .ignoreExceptions() // important: Consume might throw during first attempts
-            .until(() -> {
-                Consume.Output output = consume.run(runContextFactory.of());
-                return (output != null && output.getCount() >= 2) ? output : null;
-            }, notNullValue()); // wait until a non-null Output is returned
+        Consume.Output pullOutput;
+        try {
+            pullOutput = Await.until(
+                () -> {
+                    try {
+                        Consume.Output output = consume.run(runContextFactory.of());
+                        return (output != null && output.getCount() >= 2) ? output : null;
+                    } catch (Exception e) {
+                        return null;
+                    }
+                },
+                Duration.ofMillis(300),
+                Duration.ofSeconds(60)
+            );
+        } catch (TimeoutException e) {
+            throw new RuntimeException("Timed out waiting for AMQP messages (expected ≥ 2).", e);
+        }
 
+        assertThat(pullOutput, notNullValue());
         assertThat(pullOutput.getCount(), greaterThanOrEqualTo(2));
     }
 
@@ -242,15 +253,25 @@ class AMQPTest {
             .maxRecords(Property.ofValue(1000))
             .build();
 
-        Consume.Output pullOutput = await()
-            .pollInterval(Duration.ofMillis(300))
-            .atMost(Duration.ofSeconds(60))
-            .ignoreExceptions()
-            .until(() -> {
-                Consume.Output output = consume.run(runContextFactory.of());
-                return (output != null && output.getCount() >= 1000) ? output : null;
-            }, notNullValue());
+        Consume.Output pullOutput;
+        try {
+            pullOutput = Await.until(
+                () -> {
+                    try {
+                        Consume.Output output = consume.run(runContextFactory.of());
+                        return (output != null && output.getCount() >= 1000) ? output : null;
+                    } catch (Exception e) {
+                        return null;
+                    }
+                },
+                Duration.ofMillis(300),
+                Duration.ofSeconds(60)
+            );
+        } catch (TimeoutException e) {
+            throw new RuntimeException("Timed out waiting for AMQP messages (expected ≥ 1000).", e);
+        }
 
+        assertThat(pullOutput, notNullValue());
         assertThat(pullOutput.getCount(), greaterThanOrEqualTo(1000));
     }
 
@@ -273,15 +294,25 @@ class AMQPTest {
             .maxDuration(Property.ofValue(Duration.ofSeconds(3)))
             .build();
 
-        Consume.Output pullOutput = await()
-            .pollInterval(Duration.ofMillis(300))
-            .atMost(Duration.ofSeconds(60))
-            .ignoreExceptions() // handle transient AMQP connection or queue access errors
-            .until(() -> {
-                Consume.Output output = consume.run(runContextFactory.of());
-                return (output != null && output.getCount() >= 5) ? output : null;
-            }, notNullValue());
+        Consume.Output pullOutput;
+        try {
+            pullOutput = Await.until(
+                () -> {
+                    try {
+                        Consume.Output output = consume.run(runContextFactory.of());
+                        return (output != null && output.getCount() >= 5) ? output : null;
+                    } catch (Exception e) {
+                        return null;
+                    }
+                },
+                Duration.ofMillis(300),
+                Duration.ofSeconds(60)
+            );
+        } catch (TimeoutException e) {
+            throw new RuntimeException("Timed out waiting for AMQP messages (expected ≥ 5).", e);
+        }
 
+        assertThat(pullOutput, notNullValue());
         assertThat(pullOutput.getCount(), greaterThanOrEqualTo(5));
     }
 
