@@ -1,8 +1,8 @@
 group: io.kestra.plugin.amqp
 name: "amqp"
 title: "AMQP"
-description: "This sub-group of plugins contains tasks to use a RabbitMQ broker."
-body: ""
+description: "Tasks that connect to RabbitMQ brokers to declare exchanges and queues, bind routing keys, publish messages, and consume them via tasks or triggers (batch or real time)."
+body: "Provide host/port/credentials/virtual host values for each connection, and set stop conditions such as maxDuration or maxRecords when consuming."
 videos: []
 createdBy: "Kestra Core Team"
 managedBy: "Kestra Core Team"
