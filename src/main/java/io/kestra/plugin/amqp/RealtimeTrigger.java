@@ -29,8 +29,8 @@ import java.util.concurrent.atomic.AtomicReference;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Consume AMQP messages in real-time, and create one execution per message.",
-    description = "If you would like to consume multiple messages processed within a given time frame and process them in batch, you can use the [io.kestra.plugin.amqp.Trigger](https://kestra.io/plugins/plugin-amqp/triggers/io.kestra.plugin.amqp.trigger) instead."
+    title = "Stream AMQP messages into real-time executions",
+    description = "Creates one execution per message with manual ACK until the trigger is stopped, using consumer tag `Kestra` and serde `STRING` by default. Use the batch Trigger for time/volume-based batching; deprecated `url` remains for compatibility—prefer host/port/virtualHost."
 )
 @Plugin(
     examples = {

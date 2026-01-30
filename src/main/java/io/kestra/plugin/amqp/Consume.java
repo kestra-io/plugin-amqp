@@ -39,8 +39,8 @@ import static io.kestra.core.utils.Rethrow.throwConsumer;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Consume messages from an AMQP queue.",
-    description = "Requires `maxDuration` or `maxRecords`."
+    title = "Consume AMQP messages until a stop condition",
+    description = "Consumes from a queue with manual ACK/NACK, writing messages to internal storage and returning their URI; requires `maxDuration` or `maxRecords` to stop. Defaults to consumer tag `Kestra` and serde type `STRING`."
 )
 @Plugin(
     examples = {
@@ -294,10 +294,16 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
     @Builder
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
-        @Schema(title = "Number of rows consumed")
+        @Schema(
+            title = "Total messages consumed",
+            description = "Count of messages acknowledged before the stop condition was reached."
+        )
         private final Integer count;
 
-        @Schema(title = "File URI containing consumed messages")
+        @Schema(
+            title = "URI of file storing consumed messages",
+            description = "Internal storage path to the Ion-serialized batch returned as `taskrun.outputs.uri` or `trigger.uri`."
+        )
         private final URI uri;
     }
 }
