@@ -36,4 +36,3 @@ class RealtimeTriggerTest extends AbstractTriggerTest {
         }));
     }
 }
-

@@ -74,6 +74,16 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
     @Builder.Default
     private Property<String> consumerTag = Property.ofValue("Kestra");
 
+    @Builder.Default
+    @Schema(
+        title = "Automatic acknowledgment",
+        description = """
+            When true, the broker acknowledges messages as soon as they are delivered.
+            When false, the trigger ACKs after processing and NACKs on failure.
+            """
+    )
+    private Property<Boolean> autoAck = Property.ofValue(false);
+
     private Property<Integer> maxRecords;
 
     private Property<Duration> maxDuration;
@@ -95,6 +105,7 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
             .virtualHost(this.virtualHost)
             .queue(this.queue)
             .consumerTag(this.consumerTag)
+            .autoAck(this.autoAck)
             .maxRecords(this.maxRecords)
             .maxDuration(this.maxDuration)
             .serdeType(this.serdeType)
