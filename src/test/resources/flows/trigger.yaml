@@ -11,6 +11,7 @@ triggers:
     virtualHost: /my_vhost
     maxRecords: 2
     queue: amqpTrigger.queue
+    autoAck: true
 
 
 tasks:

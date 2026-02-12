@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @NoArgsConstructor
 @Schema(
     title = "Stream AMQP messages into real-time executions",
-    description = "Creates one execution per message with manual ACK until the trigger is stopped, using consumer tag `Kestra` and serde `STRING` by default. Use the batch Trigger for time/volume-based batching; deprecated `url` remains for compatibility—prefer host/port/virtualHost."
+    description = "Creates one execution per message with manual ACK by default until the trigger is stopped, using consumer tag `Kestra` and serde `STRING` by default. Use the batch Trigger for time/volume-based batching; deprecated `url` remains for compatibility—prefer host/port/virtualHost."
 )
 @Plugin(
     examples = {
@@ -83,6 +83,16 @@ public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerI
     private Property<String> consumerTag = Property.ofValue("Kestra");
 
     @Builder.Default
+    @Schema(
+        title = "Automatic acknowledgment",
+        description = """
+            When true, the broker acknowledges messages as soon as they are delivered.
+            When false, the trigger ACKs after emitting the execution event.
+            """
+    )
+    private Property<Boolean> autoAck = Property.ofValue(false);
+
+    @Builder.Default
     private Property<SerdeType> serdeType = Property.ofValue(SerdeType.STRING);
 
     @Builder.Default
@@ -104,6 +114,7 @@ public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerI
             .virtualHost(this.virtualHost)
             .queue(this.queue)
             .consumerTag(this.consumerTag)
+            .autoAck(this.autoAck)
             .serdeType(this.serdeType)
             .build();
 
@@ -118,6 +129,7 @@ public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerI
                 try {
                     final String queue = runContext.render(task.getQueue()).as(String.class).orElseThrow();
                     final String consumerTag = runContext.render(task.getConsumerTag()).as(String.class).orElseThrow();
+                    var rAutoAck = runContext.render(task.getAutoAck()).as(Boolean.class).orElse(false);
 
                     ConnectionFactory factory = task.connectionFactory(runContext);
                     Connection connection = factory.newConnection();
@@ -144,7 +156,9 @@ public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerI
                         try {
                             Message output = Message.of(message.getBody(), runContext.render(task.getSerdeType()).as(SerdeType.class).orElseThrow(), message.getProperties());
                             emitter.next(output);
-                            channel.basicAck(message.getEnvelope().getDeliveryTag(), false);
+                            if (!rAutoAck) {
+                                channel.basicAck(message.getEnvelope().getDeliveryTag(), false);
+                            }
                         } catch (Exception e) {
                             error.set(e);
                             isActive.set(false);
@@ -160,7 +174,7 @@ public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerI
                     // create basic consumer
                     channel.basicConsume(
                         queue,
-                        false, // auto-ack
+                        rAutoAck,
                         consumerTag,
                         deliverCallback,
                         cancelCallback,
