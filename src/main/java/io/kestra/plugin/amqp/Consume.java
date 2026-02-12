@@ -39,8 +39,8 @@ import static io.kestra.core.utils.Rethrow.throwConsumer;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Consume messages from an AMQP queue.",
-    description = "Requires `maxDuration` or `maxRecords`."
+    title = "Consume AMQP messages until a stop condition",
+    description = "Consumes from a queue with manual ACK/NACK, writing messages to internal storage and returning their URI; requires `maxDuration` or `maxRecords` to stop. Defaults to consumer tag `Kestra` and serde type `STRING`."
 )
 @Plugin(
     examples = {
@@ -80,6 +80,16 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
     @Builder.Default
     private Property<String> consumerTag = Property.ofValue("Kestra");
 
+    @Builder.Default
+    @Schema(
+        title = "Automatic acknowledgment",
+        description = """
+            When true, the broker acknowledges messages as soon as they are delivered.
+            When false, the task ACKs after processing and NACKs on failure.
+            """
+    )
+    private Property<Boolean> autoAck = Property.ofValue(false);
+
     private Property<Integer> maxRecords;
 
     private Property<Duration> maxDuration;
@@ -97,6 +107,7 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
         ConnectionFactory factory = this.connectionFactory(runContext);
         var rMaxRecords = runContext.render(this.maxRecords).as(Integer.class).orElse(null);
         var rMaxDuration = runContext.render(this.maxDuration).as(Duration.class).orElse(null);
+        var rAutoAck = runContext.render(this.autoAck).as(Boolean.class).orElse(false);
 
         try (
             BufferedOutputStream outputFile = new BufferedOutputStream(new FileOutputStream(tempFile));
@@ -104,6 +115,7 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
                 factory,
                 runContext,
                 this,
+                rAutoAck,
                 throwConsumer(message -> {
                     FileSerde.write(outputFile, message);
                     total.getAndIncrement();
@@ -150,6 +162,7 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
         private final ConnectionFactory factory;
         private final RunContext runContext;
         private final ConsumeBaseInterface consumeInterface;
+        private final boolean autoAck;
         private final Consumer<Message> consumer;
 
         private Connection connection;
@@ -158,6 +171,7 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
         public ConsumeThread(ConnectionFactory factory,
                              RunContext runContext,
                              ConsumeBaseInterface consumeInterface,
+                             boolean autoAck,
                              Consumer<Message> consumer,
                              Supplier<Boolean> supplier) {
             super("amqp-consume");
@@ -165,6 +179,7 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
             this.factory = factory;
             this.runContext = runContext;
             this.consumeInterface = consumeInterface;
+            this.autoAck = autoAck;
             this.consumer = consumer;
             this.endSupplier = supplier;
         }
@@ -182,7 +197,7 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
                 // Start consuming messages
                 channel.basicConsume(
                     runContext.render(consumeInterface.getQueue()).as(String.class).orElseThrow(),
-                    false,
+                    autoAck,
                     runContext.render(consumeInterface.getConsumerTag()).as(String.class).orElseThrow(),
                     (consumerTag, message) -> {
                         long deliveryTag = message.getEnvelope().getDeliveryTag();
@@ -190,7 +205,9 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
                             // Skip messages if stop condition is already reached
                             if (endSupplier.get()) {
                                 runContext.logger().debug("Message ignored because stop condition already reached");
-                                channel.basicNack(deliveryTag, false, true);
+                                if (!autoAck) {
+                                    channel.basicNack(deliveryTag, false, true);
+                                }
                                 return;
                             }
 
@@ -200,10 +217,16 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
                                 message.getProperties()
                             ));
 
-                            channel.basicAck(deliveryTag, false);
+                            if (!autoAck) {
+                                channel.basicAck(deliveryTag, false);
+                            }
                             lastDeliveryTag.set(deliveryTag);
 
-                            runContext.logger().debug("Received and ACKed message {}", deliveryTag);
+                            if (autoAck) {
+                                runContext.logger().debug("Received message {} with auto-ack", deliveryTag);
+                            } else {
+                                runContext.logger().debug("Received and ACKed message {}", deliveryTag);
+                            }
 
                             // Check stop condition after ACK
                             if (endSupplier.get()) {
@@ -219,7 +242,9 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
                             }
                         } catch (Exception e) {
                             try {
-                                channel.basicNack(deliveryTag, false, true);
+                                if (!autoAck) {
+                                    channel.basicNack(deliveryTag, false, true);
+                                }
                             } catch (IOException ioException) {
                                 runContext.logger().warn("Failed to NACK message", ioException);
                             }
@@ -294,10 +319,16 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
     @Builder
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
-        @Schema(title = "Number of rows consumed")
+        @Schema(
+            title = "Total messages consumed",
+            description = "Count of messages acknowledged before the stop condition was reached."
+        )
         private final Integer count;
 
-        @Schema(title = "File URI containing consumed messages")
+        @Schema(
+            title = "URI of file storing consumed messages",
+            description = "Internal storage path to the Ion-serialized batch returned as `taskrun.outputs.uri` or `trigger.uri`."
+        )
         private final URI uri;
     }
 }

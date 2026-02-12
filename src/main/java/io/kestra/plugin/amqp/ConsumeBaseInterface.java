@@ -8,20 +8,21 @@ import jakarta.validation.constraints.NotNull;
 public interface ConsumeBaseInterface {
     @NotNull
     @Schema(
-        title = "The queue to pull messages from"
+        title = "Queue name to consume",
+        description = "AMQP queue to read from; required and must already exist."
     )
     Property<String> getQueue();
 
     @Schema(
-        title = "A client-generated consumer tag to establish context"
+        title = "Consumer tag",
+        description = "Client-supplied consumer tag used for tracing and cancellations; defaults to `Kestra` in tasks and triggers."
     )
     @NotNull
     Property<String> getConsumerTag();
 
     @Schema(
-        title = "Serialization format",
-        description = "Defines how message payloads are serialized or deserialized. " +
-            "Use STRING for plain text or JSON for structured data."
+        title = "Payload serde format",
+        description = "Controls how message bodies are read and written; use STRING for raw text or JSON for structured data. Defaults to STRING."
     )
     @NotNull
     Property<SerdeType> getSerdeType();

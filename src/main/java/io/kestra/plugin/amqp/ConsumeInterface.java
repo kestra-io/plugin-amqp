@@ -8,17 +8,14 @@ import java.time.Duration;
 public interface ConsumeInterface extends ConsumeBaseInterface {
 
     @Schema(
-        title = "Maximum number of records",
-        description = "The maximum number of messages to consume before stopping. " +
-            "This is a soft limit evaluated after each message."
+        title = "Maximum records",
+        description = "Soft cap on messages consumed before stopping; evaluated after each ACKed message. Required when `maxDuration` is not set."
     )
     Property<Integer> getMaxRecords();
 
     @Schema(
         title = "Maximum duration",
-        description = "The maximum duration the consumer will run before stopping. " +
-            "This is a soft limit evaluated approximately every 100 milliseconds, " +
-            "so the actual duration may slightly exceed this value."
+        description = "Soft cap on run time; checked roughly every 100 ms so actual runtime can slightly exceed this value. Required when `maxRecords` is not set."
     )
     Property<Duration> getMaxDuration();
 }

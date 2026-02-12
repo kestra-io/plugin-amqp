@@ -13,27 +13,32 @@ public interface AmqpConnectionInterface {
     Property<String> getUrl();
 
     @Schema(
-        title = "The broker host"
+        title = "Broker host",
+        description = "Hostname or IP of the RabbitMQ broker; required unless using the deprecated `url`."
     )
     Property<String> getHost();
 
     @Schema(
-        title = "The broker port"
+        title = "Broker port",
+        description = "TCP port for AMQP connections; defaults to `5672`."
     )
     Property<String> getPort();
 
     @Schema(
-        title = "The broker virtual host"
+        title = "Virtual host",
+        description = "Broker virtual host path; defaults to `/`."
     )
     Property<String> getVirtualHost();
 
     @Schema(
-        title = "The broker username"
+        title = "Username",
+        description = "Username for the connection; uses broker default (often `guest`) when not set."
     )
     Property<String> getUsername();
 
     @Schema(
-        title = "The broker password"
+        title = "Password",
+        description = "Password for the connection; required when the broker enforces authentication."
     )
     Property<String> getPassword();
 }
