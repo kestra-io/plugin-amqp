@@ -64,6 +64,48 @@ class ConsumeTest extends AbstractTest {
     }
 
     @Test
+    void shouldConsumeWithAutoAck() throws Exception {
+        publish();
+
+        var idSuffix = IdUtils.create();
+
+        var consume = Consume.builder()
+            .id("consumeAutoAck-" + idSuffix)
+            .type(Consume.class.getName())
+            .host(Property.ofValue("localhost"))
+            .port(Property.ofValue("5672"))
+            .username(Property.ofValue("guest"))
+            .password(Property.ofValue("guest"))
+            .virtualHost(Property.ofValue("/my_vhost"))
+            .queue(Property.ofValue("amqpTest.queue"))
+            .consumerTag(Property.ofValue("KestraConsumeTest-" + idSuffix))
+            .serdeType(Property.ofValue(SerdeType.STRING))
+            .autoAck(Property.ofValue(true))
+            .maxRecords(Property.ofValue(2))
+            .maxDuration(Property.ofValue(Duration.ofSeconds(3)))
+            .build();
+
+        var output = consume.run(runContextFactory.of());
+        assertThat(output, is(notNullValue()));
+        assertThat(output.getCount(), greaterThanOrEqualTo(2));
+
+        var uri = output.getUri();
+
+        try (var inputStream = runContextFactory.of().storage().getFile(uri);
+             var reader = new BufferedReader(new InputStreamReader(inputStream), FileSerde.BUFFER_SIZE)) {
+            var messages = FileSerde.readAll(reader, Message.class)
+                .collectList()
+                .block();
+
+            assertThat(messages, is(notNullValue()));
+            assertThat(messages.size(), equalTo(output.getCount()));
+
+            var payloads = messages.stream().map(Message::getData).toList();
+            assertThat(payloads, hasItems("value-1", "value-2"));
+        }
+    }
+
+    @Test
     void shouldStopAfterMaxRecords() throws Exception {
         publish();
 

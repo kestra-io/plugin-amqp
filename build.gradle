@@ -5,7 +5,7 @@ plugins {
     id "idea"
     id 'jacoco'
     id "com.adarshr.test-logger" version "4.0.0"
-    id "com.gradleup.shadow" version "9.2.2"
+    id "com.gradleup.shadow" version "9.3.1"
     id 'signing'
     id "com.github.ben-manes.versions" version "0.53.0"
     id 'net.researchgate.release' version '3.1.0'
@@ -59,7 +59,7 @@ dependencies {
     compileOnly'org.slf4j:slf4j-api'
 
     // amqp
-    api group: 'com.rabbitmq', name: 'amqp-client', version: '5.27.1'
+    api group: 'com.rabbitmq', name: 'amqp-client', version: '5.28.0'
 }
 
 
@@ -125,7 +125,7 @@ configurations {
 }
 
 dependencies {
-    agent "org.aspectj:aspectjweaver:1.9.25"
+    agent "org.aspectj:aspectjweaver:1.9.25.1"
 }
 
 test {
