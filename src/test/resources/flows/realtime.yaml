@@ -10,6 +10,7 @@ triggers:
     password: guest
     virtualHost: /my_vhost
     queue: amqpTrigger.queue
+    autoAck: true
 
 
 tasks:

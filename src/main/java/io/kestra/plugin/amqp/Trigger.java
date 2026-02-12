@@ -23,8 +23,8 @@ import java.util.Optional;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Consume AMQP messages periodically, and create one execution per batch.",
-    description = "Note that you don't need an extra task to consume the message from the event trigger. The trigger will automatically consume messages and you can retrieve their content in your flow using the `{{ trigger.uri }}` variable. If you would like to consume each message from a AMQP queue in real-time and create one execution per message, you can use the [io.kestra.plugin.amqp.RealtimeTrigger](https://kestra.io/plugins/plugin-amqp/triggers/io.kestra.plugin.amqp.realtimetrigger) instead."
+    title = "Poll AMQP queue into batch executions",
+    description = "Polls the queue every 60 seconds by default, consumes until `maxRecords` or `maxDuration`, and launches one execution per batch with payloads stored at `trigger.uri`. Set at least one stop condition; deprecated `url` is kept for backward compatibility—use host/port/virtualHost instead."
 )
 @Plugin(
     examples = {
@@ -74,6 +74,16 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
     @Builder.Default
     private Property<String> consumerTag = Property.ofValue("Kestra");
 
+    @Builder.Default
+    @Schema(
+        title = "Automatic acknowledgment",
+        description = """
+            When true, the broker acknowledges messages as soon as they are delivered.
+            When false, the trigger ACKs after processing and NACKs on failure.
+            """
+    )
+    private Property<Boolean> autoAck = Property.ofValue(false);
+
     private Property<Integer> maxRecords;
 
     private Property<Duration> maxDuration;
@@ -95,6 +105,7 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
             .virtualHost(this.virtualHost)
             .queue(this.queue)
             .consumerTag(this.consumerTag)
+            .autoAck(this.autoAck)
             .maxRecords(this.maxRecords)
             .maxDuration(this.maxDuration)
             .serdeType(this.serdeType)
