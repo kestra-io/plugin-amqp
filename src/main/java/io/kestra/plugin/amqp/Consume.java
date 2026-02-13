@@ -24,7 +24,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.time.Duration;
-import java.time.ZonedDateTime;
+import java.time.Instant;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -98,7 +98,7 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
     public Consume.Output run(RunContext runContext) throws Exception {
         File tempFile = runContext.workingDir().createTempFile(".ion").toFile();
         AtomicInteger total = new AtomicInteger();
-        ZonedDateTime started = ZonedDateTime.now();
+        Instant started = Instant.now();
 
         if (this.maxDuration == null && this.maxRecords == null) {
             throw new Exception("maxDuration or maxRecords must be set to avoid infinite loop");
@@ -143,12 +143,12 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
     }
 
     @SuppressWarnings("RedundantIfStatement")
-    private boolean ended(AtomicInteger count, ZonedDateTime start, Integer maxRecords, Duration maxDuration) {
+    private boolean ended(AtomicInteger count, Instant start, Integer maxRecords, Duration maxDuration) {
         // Returns true if maxRecords or maxDuration reached
         if (maxRecords != null && count.get() >= maxRecords) {
             return true;
         }
-        if (maxDuration != null && ZonedDateTime.now().toEpochSecond() > start.plus(maxDuration).toEpochSecond()) {
+        if (maxDuration != null && !Instant.now().isBefore(start.plus(maxDuration))) {
             return true;
         }
         return false;
