@@ -11,6 +11,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -191,5 +192,55 @@ class ConsumeTest extends AbstractTest {
         var output = consume.run(runContextFactory.of());
         assertThat(output, is(notNullValue()));
         assertThat(output.getCount(), equalTo(0));
+    }
+
+    @Test
+    void shouldRespectSubSecondMaxDuration() throws Exception {
+        var queueName = "empty-queue-duration-" + IdUtils.create();
+        var createQueue = CreateQueue.builder()
+            .host(Property.ofValue("localhost"))
+            .port(Property.ofValue("5672"))
+            .username(Property.ofValue("guest"))
+            .password(Property.ofValue("guest"))
+            .virtualHost(Property.ofValue("/my_vhost"))
+            .name(Property.ofValue(queueName))
+            .build();
+        createQueue.run(runContextFactory.of());
+
+        waitForSecondStartWindow();
+
+        var consume = Consume.builder()
+            .id("consumeDuration-" + IdUtils.create())
+            .type(Consume.class.getName())
+            .host(Property.ofValue("localhost"))
+            .port(Property.ofValue("5672"))
+            .username(Property.ofValue("guest"))
+            .password(Property.ofValue("guest"))
+            .virtualHost(Property.ofValue("/my_vhost"))
+            .queue(Property.ofValue(queueName))
+            .consumerTag(Property.ofValue("KestraConsumeTest-" + IdUtils.create()))
+            .serdeType(Property.ofValue(SerdeType.STRING))
+            .maxDuration(Property.ofValue(Duration.ofMillis(1)))
+            .build();
+
+        var startedAt = Instant.now();
+        var output = consume.run(runContextFactory.of());
+        var elapsed = Duration.between(startedAt, Instant.now());
+
+        assertThat(output, is(notNullValue()));
+        assertThat(output.getCount(), equalTo(0));
+        assertThat(elapsed.toMillis(), lessThan(400L));
+    }
+
+    private void waitForSecondStartWindow() throws InterruptedException {
+        var timeoutAt = Instant.now().plusSeconds(3);
+        while (Instant.now().isBefore(timeoutAt)) {
+            if (Instant.now().getNano() <= 75_000_000) {
+                return;
+            }
+            Thread.sleep(2);
+        }
+
+        throw new IllegalStateException("Unable to align test at the start of a second.");
     }
 }

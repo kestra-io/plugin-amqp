@@ -178,7 +178,7 @@ class AMQPTest {
             .password(Property.ofValue("guest"))
             .virtualHost(Property.ofValue("/my_vhost"))
             .queue(Property.ofValue("kestramqp.queue"))
-            .maxDuration(Property.ofValue(Duration.ofSeconds(3)))
+            .maxRecords(Property.ofValue(2))
             .build();
 
         Consume.Output pullOutput;
@@ -291,7 +291,7 @@ class AMQPTest {
         Consume consume = Consume.builder()
             .url(Property.ofValue("amqp://guest:guest@localhost:5672/my_vhost"))
             .queue(Property.ofValue("kestramqp.queue"))
-            .maxDuration(Property.ofValue(Duration.ofSeconds(3)))
+            .maxRecords(Property.ofValue(5))
             .build();
 
         Consume.Output pullOutput;
