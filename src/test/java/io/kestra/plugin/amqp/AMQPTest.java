@@ -1,8 +1,23 @@
 package io.kestra.plugin.amqp;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
+import java.net.URI;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.concurrent.TimeoutException;
+
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+
 import com.fasterxml.jackson.core.JsonParseException;
 import com.google.common.collect.ImmutableMap;
 import com.rabbitmq.client.ConnectionFactory;
+
 import io.kestra.core.junit.annotations.KestraTest;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.runners.RunContext;
@@ -15,20 +30,8 @@ import io.kestra.core.utils.Await;
 import io.kestra.core.utils.IdUtils;
 import io.kestra.plugin.amqp.models.Message;
 import io.kestra.plugin.amqp.models.SerdeType;
-import jakarta.inject.Inject;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.OutputStream;
-import java.net.URI;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Arrays;
-import java.util.concurrent.TimeoutException;
+import jakarta.inject.Inject;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -154,18 +157,24 @@ class AMQPTest {
             .url(Property.ofValue("amqp://guest:guest@localhost:5672/my_vhost"))
             .exchange(Property.ofValue("kestramqp.exchange"))
             .routingKey(Property.ofValue("kestramqp.queue"))
-            .from(Arrays.asList(
-                JacksonMapper.toMap(Message.builder()
-                    .headers(ImmutableMap.of("testHeader", "KestraTest"))
-                    .timestamp(Instant.now())
-                    .data("value-1")
-                    .build()),
-                JacksonMapper.toMap(Message.builder()
-                    .appId("unit-kestra")
-                    .timestamp(Instant.now())
-                    .data("{{ \"apple\" ~ \"pear\" ~ \"banana\" }}")
-                    .build())
-            ))
+            .from(
+                Arrays.asList(
+                    JacksonMapper.toMap(
+                        Message.builder()
+                            .headers(ImmutableMap.of("testHeader", "KestraTest"))
+                            .timestamp(Instant.now())
+                            .data("value-1")
+                            .build()
+                    ),
+                    JacksonMapper.toMap(
+                        Message.builder()
+                            .appId("unit-kestra")
+                            .timestamp(Instant.now())
+                            .data("{{ \"apple\" ~ \"pear\" ~ \"banana\" }}")
+                            .build()
+                    )
+                )
+            )
             .build();
 
         Publish.Output pushOutput = push.run(runContextFactory.of());
@@ -184,7 +193,8 @@ class AMQPTest {
         Consume.Output pullOutput;
         try {
             pullOutput = Await.until(
-                () -> {
+                () ->
+                {
                     try {
                         Consume.Output output = consume.run(runContextFactory.of());
                         return (output != null && output.getCount() >= 2) ? output : null;
@@ -209,11 +219,14 @@ class AMQPTest {
             .url(Property.ofValue("amqp://guest:guest@localhost:5672/my_vhost"))
             .exchange(Property.ofValue("kestramqp.exchange"))
             .serdeType(Property.ofValue(SerdeType.STRING))
-            .from(JacksonMapper.toMap(Message.builder()
-                .headers(ImmutableMap.of("testHeader", "KestraTest"))
-                .timestamp(Instant.now())
-                .data("{invalid json}")
-                .build())
+            .from(
+                JacksonMapper.toMap(
+                    Message.builder()
+                        .headers(ImmutableMap.of("testHeader", "KestraTest"))
+                        .timestamp(Instant.now())
+                        .data("{invalid json}")
+                        .build()
+                )
             )
             .build();
 
@@ -228,7 +241,8 @@ class AMQPTest {
             .maxDuration(Property.ofValue(Duration.ofSeconds(3)))
             .build();
 
-        assertThrows(JsonParseException.class, () -> {
+        assertThrows(JsonParseException.class, () ->
+        {
             consume.run(runContextFactory.of());
         });
     }
@@ -256,7 +270,8 @@ class AMQPTest {
         Consume.Output pullOutput;
         try {
             pullOutput = Await.until(
-                () -> {
+                () ->
+                {
                     try {
                         Consume.Output output = consume.run(runContextFactory.of());
                         return (output != null && output.getCount() >= 1000) ? output : null;
@@ -297,7 +312,8 @@ class AMQPTest {
         Consume.Output pullOutput;
         try {
             pullOutput = Await.until(
-                () -> {
+                () ->
+                {
                     try {
                         Consume.Output output = consume.run(runContextFactory.of());
                         return (output != null && output.getCount() >= 5) ? output : null;
@@ -369,12 +385,16 @@ class AMQPTest {
         File tempFile = runContext.workingDir().createTempFile(".ion").toFile();
         OutputStream output = new FileOutputStream(tempFile);
         for (int i = 0; i < length; i++) {
-            FileSerde.write(output,
-                JacksonMapper.toMap(Message.builder()
-                    .appId("unit-kestra")
-                    .timestamp(Instant.now())
-                    .data("value-" + i)
-                    .build()));
+            FileSerde.write(
+                output,
+                JacksonMapper.toMap(
+                    Message.builder()
+                        .appId("unit-kestra")
+                        .timestamp(Instant.now())
+                        .data("value-" + i)
+                        .build()
+                )
+            );
         }
         return storageInterface.put(TenantService.MAIN_TENANT, null, URI.create("/" + IdUtils.create() + ".ion"), new FileInputStream(tempFile));
     }

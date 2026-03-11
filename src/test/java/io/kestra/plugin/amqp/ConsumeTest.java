@@ -1,18 +1,19 @@
 package io.kestra.plugin.amqp;
 
-import io.kestra.core.models.property.Property;
-import io.kestra.core.serializers.FileSerde;
-import io.kestra.core.utils.IdUtils;
-import io.kestra.plugin.amqp.models.Message;
-import io.kestra.plugin.amqp.models.SerdeType;
-import org.junit.jupiter.api.Test;
-
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+
+import org.junit.jupiter.api.Test;
+
+import io.kestra.core.models.property.Property;
+import io.kestra.core.serializers.FileSerde;
+import io.kestra.core.utils.IdUtils;
+import io.kestra.plugin.amqp.models.Message;
+import io.kestra.plugin.amqp.models.SerdeType;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -48,8 +49,10 @@ class ConsumeTest extends AbstractTest {
 
         URI uri = output.getUri();
 
-        try (var inputStream = runContextFactory.of().storage().getFile(uri);
-             var reader = new BufferedReader(new InputStreamReader(inputStream), FileSerde.BUFFER_SIZE)) {
+        try (
+            var inputStream = runContextFactory.of().storage().getFile(uri);
+            var reader = new BufferedReader(new InputStreamReader(inputStream), FileSerde.BUFFER_SIZE)
+        ) {
 
             // Deserialize the Ion messages into a list
             List<Message> messages = FileSerde.readAll(reader, Message.class)
@@ -92,8 +95,10 @@ class ConsumeTest extends AbstractTest {
 
         var uri = output.getUri();
 
-        try (var inputStream = runContextFactory.of().storage().getFile(uri);
-             var reader = new BufferedReader(new InputStreamReader(inputStream), FileSerde.BUFFER_SIZE)) {
+        try (
+            var inputStream = runContextFactory.of().storage().getFile(uri);
+            var reader = new BufferedReader(new InputStreamReader(inputStream), FileSerde.BUFFER_SIZE)
+        ) {
             var messages = FileSerde.readAll(reader, Message.class)
                 .collectList()
                 .block();

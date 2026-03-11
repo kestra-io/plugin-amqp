@@ -1,8 +1,10 @@
 package io.kestra.plugin.amqp;
 
-import com.rabbitmq.client.impl.StrictExceptionHandler;
-import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
+
+import com.rabbitmq.client.impl.StrictExceptionHandler;
+
+import lombok.AllArgsConstructor;
 
 @AllArgsConstructor
 public class AmqpExceptionHandler extends StrictExceptionHandler {

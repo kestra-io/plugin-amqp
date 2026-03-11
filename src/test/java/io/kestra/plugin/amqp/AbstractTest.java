@@ -1,6 +1,16 @@
 package io.kestra.plugin.amqp;
 
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.Objects;
+
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.TestInstance;
+
 import com.google.common.collect.ImmutableMap;
+
 import io.kestra.core.junit.annotations.KestraTest;
 import io.kestra.core.models.executions.Execution;
 import io.kestra.core.models.property.Property;
@@ -15,18 +25,11 @@ import io.kestra.core.utils.IdUtils;
 import io.kestra.core.utils.TestsUtils;
 import io.kestra.jdbc.runner.JdbcScheduler;
 import io.kestra.plugin.amqp.models.Message;
-import io.micronaut.context.ApplicationContext;
 import io.kestra.scheduler.AbstractScheduler;
+
+import io.micronaut.context.ApplicationContext;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.TestInstance;
-
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.time.Instant;
-import java.util.Arrays;
-import java.util.Objects;
 
 @KestraTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -106,18 +109,24 @@ abstract class AbstractTest {
             .password(Property.ofValue("guest"))
             .virtualHost(Property.ofValue("/my_vhost"))
             .exchange(Property.ofValue("amqpTest.exchange"))
-            .from(Arrays.asList(
-                JacksonMapper.toMap(Message.builder()
-                    .headers(ImmutableMap.of("testHeader", "KestraTest"))
-                    .timestamp(Instant.now())
-                    .data("value-1")
-                    .build()),
-                JacksonMapper.toMap(Message.builder()
-                    .appId("unit-kestra")
-                    .timestamp(Instant.now())
-                    .data("value-2")
-                    .build())
-            ))
+            .from(
+                Arrays.asList(
+                    JacksonMapper.toMap(
+                        Message.builder()
+                            .headers(ImmutableMap.of("testHeader", "KestraTest"))
+                            .timestamp(Instant.now())
+                            .data("value-1")
+                            .build()
+                    ),
+                    JacksonMapper.toMap(
+                        Message.builder()
+                            .appId("unit-kestra")
+                            .timestamp(Instant.now())
+                            .data("value-2")
+                            .build()
+                    )
+                )
+            )
             .build();
 
         return task.run(TestsUtils.mockRunContext(runContextFactory, task, ImmutableMap.of()));

@@ -1,9 +1,13 @@
 package io.kestra.plugin.amqp;
 
+import java.io.IOException;
+import java.sql.Date;
+
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+
 import io.kestra.core.exceptions.IllegalVariableEvaluationException;
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Metric;
@@ -16,14 +20,12 @@ import io.kestra.core.runners.RunContext;
 import io.kestra.core.serializers.JacksonMapper;
 import io.kestra.plugin.amqp.models.Message;
 import io.kestra.plugin.amqp.models.SerdeType;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import reactor.core.publisher.Flux;
-
-import java.io.IOException;
-import java.sql.Date;
 
 import static io.kestra.core.utils.Rethrow.throwFunction;
 
@@ -88,7 +90,7 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
     @Schema(
         title = io.kestra.core.models.property.Data.From.TITLE,
         description = io.kestra.core.models.property.Data.From.DESCRIPTION,
-        anyOf = {String.class, Message[].class, Message.class}
+        anyOf = { String.class, Message[].class, Message.class }
     )
     private Object from;
 
@@ -99,12 +101,15 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
     public Publish.Output run(RunContext runContext) throws Exception {
         ConnectionFactory factory = this.connectionFactory(runContext);
 
-        try (Connection connection = factory.newConnection();
-             Channel channel = connection.createChannel()) {
+        try (
+            Connection connection = factory.newConnection();
+            Channel channel = connection.createChannel()
+        ) {
 
             Integer count = io.kestra.core.models.property.Data.from(from)
                 .readAs(runContext, Message.class, msg -> JacksonMapper.toMap(msg, Message.class))
-                .map(throwFunction(message -> {
+                .map(throwFunction(message ->
+                {
                     publish(channel, message, runContext);
                     return 1;
                 }))
@@ -122,7 +127,8 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
 
     private Flux<Integer> buildFlowable(Flux<Message> flowable, Channel channel, RunContext runContext) throws Exception {
         return flowable
-            .map(throwFunction(message -> {
+            .map(throwFunction(message ->
+            {
                 publish(channel, message, runContext);
                 return 1;
             }));

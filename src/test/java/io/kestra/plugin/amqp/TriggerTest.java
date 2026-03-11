@@ -1,20 +1,23 @@
 package io.kestra.plugin.amqp;
 
-import com.google.common.collect.ImmutableMap;
-import io.kestra.core.models.property.Property;
-import io.kestra.core.models.executions.Execution;
-import io.kestra.core.serializers.JacksonMapper;
-import io.kestra.core.utils.TestsUtils;
-import io.kestra.core.utils.IdUtils;
-import io.kestra.plugin.amqp.models.Message;
-import io.kestra.plugin.amqp.models.SerdeType;
-import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Flux;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+
+import org.junit.jupiter.api.Test;
+
+import com.google.common.collect.ImmutableMap;
+
+import io.kestra.core.models.executions.Execution;
+import io.kestra.core.models.property.Property;
+import io.kestra.core.serializers.JacksonMapper;
+import io.kestra.core.utils.IdUtils;
+import io.kestra.core.utils.TestsUtils;
+import io.kestra.plugin.amqp.models.Message;
+import io.kestra.plugin.amqp.models.SerdeType;
+
+import reactor.core.publisher.Flux;
 
 import static io.kestra.core.utils.Rethrow.throwRunnable;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -27,12 +30,14 @@ class TriggerTest extends AbstractTriggerTest {
     void flow() throws Exception {
         CountDownLatch queueCount = new CountDownLatch(1);
 
-        Flux<Execution> receive = TestsUtils.receive(executionQueue, execution -> {
+        Flux<Execution> receive = TestsUtils.receive(executionQueue, execution ->
+        {
             queueCount.countDown();
             assertThat(execution.getLeft().getFlowId(), is("trigger"));
         });
 
-        this.run("trigger.yaml", throwRunnable(() -> {
+        this.run("trigger.yaml", throwRunnable(() ->
+        {
             publish();
 
             boolean await = queueCount.await(1, TimeUnit.MINUTES);
@@ -141,11 +146,15 @@ class TriggerTest extends AbstractTriggerTest {
             .virtualHost(Property.ofValue("/my_vhost"))
             .exchange(Property.ofValue(exchange))
             .routingKey(Property.ofValue(routingKey))
-            .from(JacksonMapper.toMap(Message.builder()
-                .headers(ImmutableMap.of("testHeader", "KestraBoundaryTest"))
-                .timestamp(Instant.now())
-                .data(payload)
-                .build()))
+            .from(
+                JacksonMapper.toMap(
+                    Message.builder()
+                        .headers(ImmutableMap.of("testHeader", "KestraBoundaryTest"))
+                        .timestamp(Instant.now())
+                        .data(payload)
+                        .build()
+                )
+            )
             .build();
 
         task.run(runContextFactory.of());

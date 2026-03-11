@@ -1,21 +1,21 @@
 package io.kestra.plugin.amqp;
 
-import com.rabbitmq.client.*;
-import io.kestra.core.models.annotations.Example;
-import io.kestra.core.models.annotations.Plugin;
-import io.kestra.core.models.annotations.PluginProperty;
-import io.kestra.core.models.property.Property;
-import io.kestra.core.models.tasks.RunnableTask;
-import io.kestra.core.runners.RunContext;
-import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.*;
-import lombok.experimental.SuperBuilder;
-
-import jakarta.validation.constraints.NotNull;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+
+import com.rabbitmq.client.*;
+
+import io.kestra.core.models.annotations.Example;
+import io.kestra.core.models.annotations.Plugin;
+import io.kestra.core.models.property.Property;
+import io.kestra.core.models.tasks.RunnableTask;
+import io.kestra.core.runners.RunContext;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 @SuperBuilder
 @ToString
@@ -92,7 +92,8 @@ public class DeclareExchange extends AbstractAmqpConnection implements RunnableT
             Channel channel = connection.createChannel();
 
             var argsMap = runContext.render(args).asMap(String.class, Objects.class);
-            channel.exchangeDeclare(exchange,
+            channel.exchangeDeclare(
+                exchange,
                 runContext.render(exchangeType).as(BuiltinExchangeType.class).orElseThrow(),
                 runContext.render(durability).as(Boolean.class).orElseThrow(),
                 runContext.render(autoDelete).as(Boolean.class).orElseThrow(),

@@ -1,23 +1,5 @@
 package io.kestra.plugin.amqp;
 
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
-import io.kestra.core.models.annotations.Example;
-import io.kestra.core.models.annotations.Metric;
-import io.kestra.core.models.annotations.Plugin;
-import io.kestra.core.models.executions.metrics.Counter;
-import io.kestra.core.models.property.Property;
-import io.kestra.core.models.tasks.RunnableTask;
-import io.kestra.core.runners.RunContext;
-import io.kestra.core.serializers.FileSerde;
-import io.kestra.core.utils.Await;
-import io.kestra.plugin.amqp.models.Message;
-import io.kestra.plugin.amqp.models.SerdeType;
-import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.*;
-import lombok.experimental.SuperBuilder;
-
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -30,6 +12,26 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
+
+import io.kestra.core.models.annotations.Example;
+import io.kestra.core.models.annotations.Metric;
+import io.kestra.core.models.annotations.Plugin;
+import io.kestra.core.models.executions.metrics.Counter;
+import io.kestra.core.models.property.Property;
+import io.kestra.core.models.tasks.RunnableTask;
+import io.kestra.core.runners.RunContext;
+import io.kestra.core.serializers.FileSerde;
+import io.kestra.core.utils.Await;
+import io.kestra.plugin.amqp.models.Message;
+import io.kestra.plugin.amqp.models.SerdeType;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import static io.kestra.core.utils.Rethrow.throwConsumer;
 
@@ -116,7 +118,8 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
                 runContext,
                 this,
                 rAutoAck,
-                throwConsumer(message -> {
+                throwConsumer(message ->
+                {
                     FileSerde.write(outputFile, message);
                     total.getAndIncrement();
                 }),
@@ -130,8 +133,12 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
                 throw thread.getException();
             }
 
-            runContext.metric(Counter.of("consumed.records", total.get(),
-                "queue", runContext.render(this.queue).as(String.class).orElse(null)));
+            runContext.metric(
+                Counter.of(
+                    "consumed.records", total.get(),
+                    "queue", runContext.render(this.queue).as(String.class).orElse(null)
+                )
+            );
 
             outputFile.flush();
 
@@ -169,11 +176,11 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
         private Channel channel;
 
         public ConsumeThread(ConnectionFactory factory,
-                             RunContext runContext,
-                             ConsumeBaseInterface consumeInterface,
-                             boolean autoAck,
-                             Consumer<Message> consumer,
-                             Supplier<Boolean> supplier) {
+            RunContext runContext,
+            ConsumeBaseInterface consumeInterface,
+            boolean autoAck,
+            Consumer<Message> consumer,
+            Supplier<Boolean> supplier) {
             super("amqp-consume");
             this.setDaemon(true);
             this.factory = factory;
@@ -199,7 +206,8 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
                     runContext.render(consumeInterface.getQueue()).as(String.class).orElseThrow(),
                     autoAck,
                     runContext.render(consumeInterface.getConsumerTag()).as(String.class).orElseThrow(),
-                    (consumerTag, message) -> {
+                    (consumerTag, message) ->
+                    {
                         long deliveryTag = message.getEnvelope().getDeliveryTag();
                         try {
                             // Skip messages if stop condition is already reached
@@ -211,11 +219,13 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
                                 return;
                             }
 
-                            consumer.accept(Message.of(
-                                message.getBody(),
-                                runContext.render(consumeInterface.getSerdeType()).as(SerdeType.class).orElseThrow(),
-                                message.getProperties()
-                            ));
+                            consumer.accept(
+                                Message.of(
+                                    message.getBody(),
+                                    runContext.render(consumeInterface.getSerdeType()).as(SerdeType.class).orElseThrow(),
+                                    message.getProperties()
+                                )
+                            );
 
                             if (!autoAck) {
                                 channel.basicAck(deliveryTag, false);
@@ -251,16 +261,15 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
                             exception.set(e);
                         }
                     },
-                    consumerTag ->
-                        runContext.logger().debug("Consumer {} cancelled", consumerTag),
-                    (consumerTag, shutdownSignalException) ->
-                        runContext.logger().debug("Consumer {} shutdown signal: {}", consumerTag, shutdownSignalException.getMessage())
+                    consumerTag -> runContext.logger().debug("Consumer {} cancelled", consumerTag),
+                    (consumerTag, shutdownSignalException) -> runContext.logger().debug("Consumer {} shutdown signal: {}", consumerTag, shutdownSignalException.getMessage())
                 );
 
                 // Wait until stop condition or exception
                 try {
                     if (!endSupplier.get()) {
-                        Await.until(() -> exception.get() != null || endSupplier.get(),
+                        Await.until(
+                            () -> exception.get() != null || endSupplier.get(),
                             Duration.ofMillis(100),
                             Duration.ofMinutes(1)
                         );
@@ -280,8 +289,10 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
         public void close() throws Exception {
             try {
                 // Try to cancel, but if already cancelled, ignore the error
-                channel.basicCancel(runContext.render(consumeInterface.getConsumerTag())
-                    .as(String.class).orElseThrow());
+                channel.basicCancel(
+                    runContext.render(consumeInterface.getConsumerTag())
+                        .as(String.class).orElseThrow()
+                );
             } catch (IOException e) {
                 // Ignore 'Unknown consumerTag' since it means the consumer was already cancelled
                 if (!e.getMessage().contains("Unknown consumerTag")) {
@@ -291,7 +302,8 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
 
             // Wait for callbacks to finish
             try {
-                Await.until(() -> exception.get() != null || endSupplier.get(),
+                Await.until(
+                    () -> exception.get() != null || endSupplier.get(),
                     Duration.ofMillis(200),
                     Duration.ofSeconds(2)
                 );

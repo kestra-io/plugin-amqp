@@ -1,16 +1,18 @@
 package io.kestra.plugin.amqp;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+
 import com.rabbitmq.client.ConnectionFactory;
+
 import io.kestra.core.exceptions.IllegalVariableEvaluationException;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.Task;
 import io.kestra.core.runners.RunContext;
+
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
-
-import java.net.URI;
-import java.net.URISyntaxException;
 
 @SuperBuilder
 @ToString

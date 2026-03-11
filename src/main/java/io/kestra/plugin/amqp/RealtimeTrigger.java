@@ -1,6 +1,15 @@
 package io.kestra.plugin.amqp;
 
+import java.io.IOException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+
+import org.reactivestreams.Publisher;
+
 import com.rabbitmq.client.*;
+
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.conditions.ConditionContext;
@@ -10,18 +19,12 @@ import io.kestra.core.models.triggers.*;
 import io.kestra.core.runners.RunContext;
 import io.kestra.plugin.amqp.models.Message;
 import io.kestra.plugin.amqp.models.SerdeType;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
-import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
-
-import java.io.IOException;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 
 @SuperBuilder
 @ToString
@@ -124,7 +127,8 @@ public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerI
 
     public Publisher<Message> publisher(final Consume task, final RunContext runContext) {
         return Flux.create(
-            emitter -> {
+            emitter ->
+            {
                 final AtomicReference<Throwable> error = new AtomicReference<>();
                 try {
                     final String queue = runContext.render(task.getQueue()).as(String.class).orElseThrow();
@@ -136,7 +140,8 @@ public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerI
                     Channel channel = connection.createChannel();
 
                     final AtomicBoolean basicCancel = new AtomicBoolean(true);
-                    emitter.onDispose(() -> {
+                    emitter.onDispose(() ->
+                    {
                         try {
                             if (channel.isOpen() && channel.getConnection().isOpen()) {
                                 if (basicCancel.compareAndSet(true, false)) {
@@ -152,7 +157,8 @@ public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerI
                         }
                     });
 
-                    DeliverCallback deliverCallback = (tag, message) -> {
+                    DeliverCallback deliverCallback = (tag, message) ->
+                    {
                         try {
                             Message output = Message.of(message.getBody(), runContext.render(task.getSerdeType()).as(SerdeType.class).orElseThrow(), message.getProperties());
                             emitter.next(output);
@@ -165,7 +171,8 @@ public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerI
                         }
                     };
 
-                    CancelCallback cancelCallback = tag -> {
+                    CancelCallback cancelCallback = tag ->
+                    {
                         runContext.logger().info("Consumer {} has been cancelled", consumerTag);
                         basicCancel.set(false);
                         isActive.set(false);
@@ -178,7 +185,8 @@ public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerI
                         consumerTag,
                         deliverCallback,
                         cancelCallback,
-                        (tag, sig) -> {
+                        (tag, sig) ->
+                        {
                         }
                     );
 
@@ -196,7 +204,8 @@ public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerI
                         emitter.complete();
                     }
                 }
-            });
+            }
+        );
     }
 
     private void busyWait() {

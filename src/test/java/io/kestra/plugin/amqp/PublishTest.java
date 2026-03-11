@@ -1,12 +1,5 @@
 package io.kestra.plugin.amqp;
 
-import io.kestra.core.models.property.Property;
-import io.kestra.core.serializers.FileSerde;
-import io.kestra.core.utils.IdUtils;
-import io.kestra.plugin.amqp.models.Message;
-import io.kestra.plugin.amqp.models.SerdeType;
-import org.junit.jupiter.api.Test;
-
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.URI;
@@ -14,6 +7,14 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+
+import org.junit.jupiter.api.Test;
+
+import io.kestra.core.models.property.Property;
+import io.kestra.core.serializers.FileSerde;
+import io.kestra.core.utils.IdUtils;
+import io.kestra.plugin.amqp.models.Message;
+import io.kestra.plugin.amqp.models.SerdeType;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -98,8 +99,8 @@ class PublishTest extends AbstractTest {
             .queue(Property.ofValue(queueName))
             .consumerTag(Property.ofValue("KestraPublishTest-" + suffix))
             .serdeType(Property.ofValue(SerdeType.STRING))
-            .maxRecords(Property.ofValue(2))                       // consume only the two we just published
-            .maxDuration(Property.ofValue(Duration.ofSeconds(5)))  // small guardrail
+            .maxRecords(Property.ofValue(2)) // consume only the two we just published
+            .maxDuration(Property.ofValue(Duration.ofSeconds(5))) // small guardrail
             .build();
 
         var consumeOutput = consume.run(runContextFactory.of());
@@ -108,8 +109,10 @@ class PublishTest extends AbstractTest {
 
         URI uri = consumeOutput.getUri();
 
-        try (var inputStream = runContextFactory.of().storage().getFile(uri);
-             var reader = new BufferedReader(new InputStreamReader(inputStream), FileSerde.BUFFER_SIZE)) {
+        try (
+            var inputStream = runContextFactory.of().storage().getFile(uri);
+            var reader = new BufferedReader(new InputStreamReader(inputStream), FileSerde.BUFFER_SIZE)
+        ) {
 
             List<Message> received = FileSerde.readAll(reader, Message.class)
                 .collectList()
