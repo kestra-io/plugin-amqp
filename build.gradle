@@ -108,6 +108,9 @@ dependencies {
     testImplementation "org.junit.jupiter:junit-jupiter-engine"
     testImplementation "org.hamcrest:hamcrest"
     testImplementation "org.hamcrest:hamcrest-library"
+
+    // sanity checks
+    testImplementation "io.kestra.plugin:plugin-docker:1.2.3"
 }
 
 /**********************************************************************************************************************\
