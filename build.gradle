@@ -103,11 +103,15 @@ dependencies {
     testImplementation group: "io.kestra", name: "runner-memory"
     testImplementation group: "io.kestra", name: "storage-local"
     testImplementation group: "io.kestra", name: "scheduler"
+    testImplementation group: "io.kestra", name: "script", version: kestraVersion
 
     // test
     testImplementation "org.junit.jupiter:junit-jupiter-engine"
     testImplementation "org.hamcrest:hamcrest"
     testImplementation "org.hamcrest:hamcrest-library"
+
+    // sanity checks
+    testImplementation "io.kestra.plugin:plugin-docker:1.2.3"
 }
 
 /**********************************************************************************************************************\
