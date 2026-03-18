@@ -1,0 +1,101 @@
+id: all_amqp
+namespace: sanitychecks.plugin-amqp
+
+variables:
+  host: localhost
+  username: guest
+  password: guest
+  virtual_host: /my_vhost
+  exchange: amqp.sanity.{{ execution.id }}
+  queue: amqp.sanity.{{ execution.id }}
+
+tasks:
+  - id: init
+    type: io.kestra.plugin.core.output.OutputValues
+    values:
+      port: "{{ randomPort() }}"
+
+  - id: docker_start
+    type: io.kestra.plugin.docker.Run
+    containerImage: rabbitmq:3-management-alpine
+    portBindings:
+      - "{{ outputs.init.values.port }}:5672"
+    env:
+      RABBITMQ_DEFAULT_VHOST: "{{ vars.virtual_host }}"
+    wait: false
+
+  - id: wait_rabbitmq
+    type: io.kestra.plugin.core.flow.Sleep
+    duration: PT15S
+
+  - id: declare_exchange
+    type: io.kestra.plugin.amqp.DeclareExchange
+    host: "{{ vars.host }}"
+    port: "{{ outputs.init.values.port }}"
+    username: "{{ vars.username }}"
+    password: "{{ vars.password }}"
+    virtualHost: "{{ vars.virtual_host }}"
+    name: "{{ vars.exchange }}"
+
+  - id: create_queue
+    type: io.kestra.plugin.amqp.CreateQueue
+    host: "{{ vars.host }}"
+    port: "{{ outputs.init.values.port }}"
+    username: "{{ vars.username }}"
+    password: "{{ vars.password }}"
+    virtualHost: "{{ vars.virtual_host }}"
+    name: "{{ vars.queue }}"
+
+  - id: queue_bind
+    type: io.kestra.plugin.amqp.QueueBind
+    host: "{{ vars.host }}"
+    port: "{{ outputs.init.values.port }}"
+    username: "{{ vars.username }}"
+    password: "{{ vars.password }}"
+    virtualHost: "{{ vars.virtual_host }}"
+    exchange: "{{ vars.exchange }}"
+    queue: "{{ vars.queue }}"
+
+  - id: publish
+    type: io.kestra.plugin.amqp.Publish
+    host: "{{ vars.host }}"
+    port: "{{ outputs.init.values.port }}"
+    username: "{{ vars.username }}"
+    password: "{{ vars.password }}"
+    virtualHost: "{{ vars.virtual_host }}"
+    exchange: "{{ vars.exchange }}"
+    from:
+      - data: sanity-value-1
+        headers:
+          source: sanity-check
+      - data: sanity-value-2
+        appId: sanity-amqp
+
+  - id: consume
+    type: io.kestra.plugin.amqp.Consume
+    host: "{{ vars.host }}"
+    port: "{{ outputs.init.values.port }}"
+    username: "{{ vars.username }}"
+    password: "{{ vars.password }}"
+    virtualHost: "{{ vars.virtual_host }}"
+    queue: "{{ vars.queue }}"
+    consumerTag: "KestraSanity-{{ execution.id }}"
+    maxRecords: 2
+    maxDuration: PT5S
+
+  - id: assert
+    type: io.kestra.plugin.core.execution.Assert
+    conditions:
+      - "{{ outputs.publish.messagesCount == 2 }}"
+      - "{{ outputs.consume.count == 2 }}"
+      - "{{ fromIon(read(outputs.consume.uri), allRows=true) | length == 2 }}"
+      - "{{ outputs.consume.uri is not null }}"
+
+finally:
+  - id: purge
+    type: io.kestra.plugin.core.storage.PurgeCurrentExecutionFiles
+
+  - id: docker_stop
+    type: io.kestra.plugin.docker.Stop
+    containerId: "{{ outputs.docker_start.taskRunner.containerId }}"
+    kill: true
