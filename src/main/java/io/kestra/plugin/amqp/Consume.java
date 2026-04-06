@@ -34,6 +34,7 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 import static io.kestra.core.utils.Rethrow.throwConsumer;
+import io.kestra.core.models.annotations.PluginProperty;
 
 @SuperBuilder
 @ToString
@@ -74,12 +75,15 @@ import static io.kestra.core.utils.Rethrow.throwConsumer;
     }
 )
 public class Consume extends AbstractAmqpConnection implements RunnableTask<Consume.Output>, ConsumeInterface {
+    @PluginProperty(group = "main")
     private Property<String> queue;
 
     @Builder.Default
+    @PluginProperty(group = "main")
     private Property<SerdeType> serdeType = Property.ofValue(SerdeType.STRING);
 
     @Builder.Default
+    @PluginProperty(group = "advanced")
     private Property<String> consumerTag = Property.ofValue("Kestra");
 
     @Builder.Default
@@ -90,10 +94,13 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
             When false, the task ACKs after processing and NACKs on failure.
             """
     )
+    @PluginProperty(group = "destination")
     private Property<Boolean> autoAck = Property.ofValue(false);
 
+    @PluginProperty(group = "advanced")
     private Property<Integer> maxRecords;
 
+    @PluginProperty(group = "execution")
     private Property<Duration> maxDuration;
 
     @Override
@@ -169,6 +176,7 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
         private final ConnectionFactory factory;
         private final RunContext runContext;
         private final ConsumeBaseInterface consumeInterface;
+        @PluginProperty(group = "destination")
         private final boolean autoAck;
         private final Consumer<Message> consumer;
 

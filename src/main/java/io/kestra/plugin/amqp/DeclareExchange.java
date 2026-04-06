@@ -16,6 +16,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import io.kestra.core.models.annotations.PluginProperty;
 
 @SuperBuilder
 @ToString
@@ -51,35 +52,41 @@ public class DeclareExchange extends AbstractAmqpConnection implements RunnableT
     @Schema(
         title = "The name of the exchange"
     )
+    @PluginProperty(group = "main")
     private Property<String> name;
 
     @Builder.Default
     @Schema(
         title = "The exchange type"
     )
+    @PluginProperty(group = "advanced")
     private Property<BuiltinExchangeType> exchangeType = Property.ofValue(BuiltinExchangeType.DIRECT);
 
     @Builder.Default
     @Schema(
         title = "Specifies if declaring a durable exchange (the exchange will survive a server restart)"
     )
+    @PluginProperty(group = "advanced")
     private Property<Boolean> durability = Property.ofValue(true);
 
     @Builder.Default
     @Schema(
         title = "Specifies if the server should delete the exchange when it is no longer in use"
     )
+    @PluginProperty(group = "destination")
     private Property<Boolean> autoDelete = Property.ofValue(false);
 
     @Builder.Default
     @Schema(
         title = "Specifies if the exchange is internal, i.e., can't be directly published to by a client"
     )
+    @PluginProperty(group = "advanced")
     private Property<Boolean> internal = Property.ofValue(false);
 
     @Schema(
         title = "Other properties (construction arguments) for the exchange"
     )
+    @PluginProperty(group = "advanced")
     private Property<Map<String, Object>> args;
 
     @Override
