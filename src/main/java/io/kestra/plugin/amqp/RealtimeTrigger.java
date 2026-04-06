@@ -25,6 +25,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import reactor.core.publisher.Flux;
+import io.kestra.core.models.annotations.PluginProperty;
 
 @SuperBuilder
 @ToString
@@ -93,6 +94,7 @@ public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerI
             When false, the trigger ACKs after emitting the execution event.
             """
     )
+    @PluginProperty(group = "advanced")
     private Property<Boolean> autoAck = Property.ofValue(false);
 
     @Builder.Default

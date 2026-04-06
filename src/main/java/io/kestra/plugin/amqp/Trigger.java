@@ -18,6 +18,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import io.kestra.core.models.annotations.PluginProperty;
 
 @SuperBuilder
 @ToString
@@ -84,6 +85,7 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
             When false, the trigger ACKs after processing and NACKs on failure.
             """
     )
+    @PluginProperty(group = "advanced")
     private Property<Boolean> autoAck = Property.ofValue(false);
 
     private Property<Integer> maxRecords;
