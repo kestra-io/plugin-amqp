@@ -2,16 +2,13 @@ package io.kestra.plugin.amqp;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Map;
-import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.ImmutableMap;
 
-import io.kestra.core.junit.annotations.EvaluateTrigger;
-import io.kestra.core.models.conditions.ConditionContext;
 import io.kestra.core.models.executions.Execution;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.serializers.JacksonMapper;
@@ -20,23 +17,38 @@ import io.kestra.core.utils.TestsUtils;
 import io.kestra.plugin.amqp.models.Message;
 import io.kestra.plugin.amqp.models.SerdeType;
 
+import reactor.core.publisher.Flux;
+
+import static io.kestra.core.utils.Rethrow.throwRunnable;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
+import io.kestra.core.models.conditions.ConditionContext;
+import java.util.Map;
 
 class TriggerTest extends AbstractTriggerTest {
-    @BeforeEach
-    void setUp() throws Exception {
-        publish();
-    }
-
     @Test
-    @EvaluateTrigger(flow = "flows/trigger.yaml", triggerId = "watch")
-    void run(Optional<Execution> optionalExecution) {
-        assertThat(optionalExecution.isPresent(), is(true));
-        Execution execution = optionalExecution.get();
-        assertThat((Integer) execution.getTrigger().getVariables().get("count"), greaterThanOrEqualTo(2));
+    void flow() throws Exception {
+        CountDownLatch queueCount = new CountDownLatch(1);
+
+        Flux<Execution> receive = TestsUtils.receive(executionQueue, execution ->
+        {
+            queueCount.countDown();
+            assertThat(execution.getLeft().getFlowId(), is("trigger"));
+        });
+
+        this.run("trigger.yaml", throwRunnable(() ->
+        {
+            publish();
+
+            boolean await = queueCount.await(1, TimeUnit.MINUTES);
+            assertThat(await, is(true));
+
+            Integer trigger = (Integer) receive.blockLast().getTrigger().getVariables().get("count");
+
+            assertThat(trigger, greaterThanOrEqualTo(2));
+        }));
     }
 
     @Test
@@ -92,9 +104,9 @@ class TriggerTest extends AbstractTriggerTest {
             .maxDuration(Property.ofValue(Duration.ofMillis(1)))
             .build();
 
-        Map.Entry<ConditionContext, io.kestra.core.models.triggers.Trigger> triggerContext = TestsUtils.mockTrigger(runContextFactory, trigger);
+        Map.Entry<ConditionContext, io.kestra.core.scheduler.model.TriggerState> triggerContext = TestsUtils.mockTrigger(runContextFactory, trigger);
         var firstEvaluationStartedAt = Instant.now();
-        var first = trigger.evaluate(triggerContext.getKey(), triggerContext.getValue());
+        var first = trigger.evaluate(triggerContext.getKey(), triggerContext.getValue().context());
         var firstElapsed = Duration.between(firstEvaluationStartedAt, Instant.now());
 
         assertThat(first.isEmpty(), is(true));
@@ -117,8 +129,8 @@ class TriggerTest extends AbstractTriggerTest {
             .maxDuration(Property.ofValue(Duration.ofSeconds(2)))
             .build();
 
-        Map.Entry<ConditionContext, io.kestra.core.models.triggers.Trigger> secondTriggerContext = TestsUtils.mockTrigger(runContextFactory, secondTrigger);
-        var second = secondTrigger.evaluate(secondTriggerContext.getKey(), secondTriggerContext.getValue());
+        Map.Entry<ConditionContext, io.kestra.core.scheduler.model.TriggerState> secondTriggerContext = TestsUtils.mockTrigger(runContextFactory, secondTrigger);
+        var second = secondTrigger.evaluate(secondTriggerContext.getKey(), secondTriggerContext.getValue().context());
         assertThat(second.isPresent(), is(true));
 
         var count = (Integer) second.orElseThrow().getTrigger().getVariables().get("count");
