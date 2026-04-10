@@ -24,6 +24,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
+import io.kestra.core.models.conditions.ConditionContext;
+import java.util.Map;
 
 class TriggerTest extends AbstractTriggerTest {
     @Test
@@ -102,9 +104,9 @@ class TriggerTest extends AbstractTriggerTest {
             .maxDuration(Property.ofValue(Duration.ofMillis(1)))
             .build();
 
-        var triggerContext = TestsUtils.mockTrigger(runContextFactory, trigger);
+        Map.Entry<ConditionContext, io.kestra.core.scheduler.model.TriggerState> triggerContext = TestsUtils.mockTrigger(runContextFactory, trigger);
         var firstEvaluationStartedAt = Instant.now();
-        var first = trigger.evaluate(triggerContext.getKey(), triggerContext.getValue());
+        var first = trigger.evaluate(triggerContext.getKey(), triggerContext.getValue().context());
         var firstElapsed = Duration.between(firstEvaluationStartedAt, Instant.now());
 
         assertThat(first.isEmpty(), is(true));
@@ -127,8 +129,8 @@ class TriggerTest extends AbstractTriggerTest {
             .maxDuration(Property.ofValue(Duration.ofSeconds(2)))
             .build();
 
-        var secondTriggerContext = TestsUtils.mockTrigger(runContextFactory, secondTrigger);
-        var second = secondTrigger.evaluate(secondTriggerContext.getKey(), secondTriggerContext.getValue());
+        Map.Entry<ConditionContext, io.kestra.core.scheduler.model.TriggerState> secondTriggerContext = TestsUtils.mockTrigger(runContextFactory, secondTrigger);
+        var second = secondTrigger.evaluate(secondTriggerContext.getKey(), secondTriggerContext.getValue().context());
         assertThat(second.isPresent(), is(true));
 
         var count = (Integer) second.orElseThrow().getTrigger().getVariables().get("count");
