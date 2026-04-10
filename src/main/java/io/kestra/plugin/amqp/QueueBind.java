@@ -18,6 +18,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import io.kestra.core.models.annotations.PluginProperty;
 
 @SuperBuilder
 @ToString
@@ -54,22 +55,26 @@ public class QueueBind extends AbstractAmqpConnection implements RunnableTask<Qu
     @Schema(
         title = "The exchange to bind with"
     )
+    @PluginProperty(group = "main")
     private Property<String> exchange;
 
     @NotNull
     @Schema(
         title = "The queue to bind"
     )
+    @PluginProperty(group = "main")
     private Property<String> queue;
 
     @Schema(
         title = "The routing key to use for the binding"
     )
+    @PluginProperty(group = "connection")
     private Property<String> routingKey;
 
     @Schema(
         title = "Other properties (binding parameters)"
     )
+    @PluginProperty(group = "advanced")
     private Property<Map<String, Object>> args;
 
     @Override

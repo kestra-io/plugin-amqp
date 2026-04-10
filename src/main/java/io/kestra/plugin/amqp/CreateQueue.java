@@ -17,6 +17,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import io.kestra.core.models.annotations.PluginProperty;
 
 @SuperBuilder
 @ToString
@@ -54,29 +55,34 @@ public class CreateQueue extends AbstractAmqpConnection implements RunnableTask<
     @Schema(
         title = "The name of the queue"
     )
+    @PluginProperty(group = "main")
     private Property<String> name;
 
     @Builder.Default
     @Schema(
         title = "Specifies if declaring a durable queue (the queue will survive a server restart)"
     )
+    @PluginProperty(group = "advanced")
     private Property<Boolean> durability = Property.ofValue(true);
 
     @Builder.Default
     @Schema(
         title = "Specifies if declaring an exclusive queue (restricted to this connection)"
     )
+    @PluginProperty(group = "advanced")
     private Property<Boolean> exclusive = Property.ofValue(false);
 
     @Builder.Default
     @Schema(
         title = "Specifies if declaring an auto-delete queue (server will delete it when no longer in use)"
     )
+    @PluginProperty(group = "destination")
     private Property<Boolean> autoDelete = Property.ofValue(false);
 
     @Schema(
         title = "Other properties (construction arguments) for the queue"
     )
+    @PluginProperty(group = "advanced")
     private Property<Map<String, Object>> args;
 
     @Override

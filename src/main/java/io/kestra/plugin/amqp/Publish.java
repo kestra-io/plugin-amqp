@@ -28,6 +28,7 @@ import lombok.experimental.SuperBuilder;
 import reactor.core.publisher.Flux;
 
 import static io.kestra.core.utils.Rethrow.throwFunction;
+import io.kestra.core.models.annotations.PluginProperty;
 
 @SuperBuilder
 @ToString
@@ -79,11 +80,13 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
     @Schema(
         title = "The exchange to publish the message to"
     )
+    @PluginProperty(group = "main")
     private Property<String> exchange;
 
     @Schema(
         title = "The routing key"
     )
+    @PluginProperty(group = "connection")
     private Property<String> routingKey;
 
     @NotNull
@@ -92,9 +95,11 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
         description = io.kestra.core.models.property.Data.From.DESCRIPTION,
         anyOf = { String.class, Message[].class, Message.class }
     )
+    @PluginProperty(group = "main")
     private Object from;
 
     @Builder.Default
+    @PluginProperty(group = "advanced")
     private Property<SerdeType> serdeType = Property.ofValue(SerdeType.STRING);
 
     @Override
