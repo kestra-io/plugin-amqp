@@ -14,15 +14,13 @@ import com.google.common.collect.ImmutableMap;
 import io.kestra.core.junit.annotations.KestraTest;
 import io.kestra.core.models.executions.Execution;
 import io.kestra.core.models.property.Property;
-import io.kestra.core.queues.QueueFactoryInterface;
-import io.kestra.core.queues.QueueInterface;
+import io.kestra.core.queues.DispatchQueueInterface;
 import io.kestra.core.repositories.LocalFlowRepositoryLoader;
 import io.kestra.core.runners.RunContextFactory;
 import io.kestra.core.serializers.JacksonMapper;
 import io.kestra.core.utils.TestsUtils;
 import io.kestra.plugin.amqp.models.Message;
 import jakarta.inject.Inject;
-import jakarta.inject.Named;
 
 @KestraTest(startRunner = true, startScheduler = true)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -34,8 +32,7 @@ abstract class AbstractTest {
     protected RunContextFactory runContextFactory;
 
     @Inject
-    @Named(QueueFactoryInterface.EXECUTION_NAMED)
-    protected QueueInterface<Execution> executionQueue;
+    protected DispatchQueueInterface<Execution> executionQueue;
 
     @BeforeAll
     void setUp() throws Exception {
