@@ -1,10 +1,7 @@
 package io.kestra.plugin.amqp;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
 import java.time.Instant;
 import java.util.Arrays;
-import java.util.Objects;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.TestInstance;
@@ -12,27 +9,18 @@ import org.junit.jupiter.api.TestInstance;
 import com.google.common.collect.ImmutableMap;
 
 import io.kestra.core.junit.annotations.KestraTest;
-import io.kestra.core.models.executions.Execution;
 import io.kestra.core.models.property.Property;
-import io.kestra.core.queues.DispatchQueueInterface;
-import io.kestra.core.repositories.LocalFlowRepositoryLoader;
 import io.kestra.core.runners.RunContextFactory;
 import io.kestra.core.serializers.JacksonMapper;
 import io.kestra.core.utils.TestsUtils;
 import io.kestra.plugin.amqp.models.Message;
 import jakarta.inject.Inject;
 
-@KestraTest(startRunner = true, startScheduler = true)
+@KestraTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 abstract class AbstractTest {
     @Inject
-    protected LocalFlowRepositoryLoader repositoryLoader;
-
-    @Inject
     protected RunContextFactory runContextFactory;
-
-    @Inject
-    protected DispatchQueueInterface<Execution> executionQueue;
 
     @BeforeAll
     void setUp() throws Exception {
@@ -67,11 +55,6 @@ abstract class AbstractTest {
         declareExchange.run(runContextFactory.of());
         createQueue.run(runContextFactory.of());
         queueBind.run(runContextFactory.of());
-    }
-
-    protected void runFlow(String filename, Runnable runnable) throws IOException, URISyntaxException {
-        repositoryLoader.load("null", Objects.requireNonNull(getClass().getClassLoader().getResource("flows/" + filename)));
-        runnable.run();
     }
 
     protected Publish.Output publish() throws Exception {
