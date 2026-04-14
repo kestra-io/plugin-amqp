@@ -17,29 +17,16 @@ import io.kestra.core.models.property.Property;
 import io.kestra.core.queues.QueueFactoryInterface;
 import io.kestra.core.queues.QueueInterface;
 import io.kestra.core.repositories.LocalFlowRepositoryLoader;
-import io.kestra.core.runners.FlowListeners;
 import io.kestra.core.runners.RunContextFactory;
-import io.kestra.core.runners.Worker;
 import io.kestra.core.serializers.JacksonMapper;
-import io.kestra.core.utils.IdUtils;
 import io.kestra.core.utils.TestsUtils;
-import io.kestra.jdbc.runner.JdbcScheduler;
 import io.kestra.plugin.amqp.models.Message;
-import io.kestra.scheduler.AbstractScheduler;
-
-import io.micronaut.context.ApplicationContext;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
 
-@KestraTest
+@KestraTest(startRunner = true, startScheduler = true)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 abstract class AbstractTriggerTest {
-    @Inject
-    private ApplicationContext applicationContext;
-
-    @Inject
-    private FlowListeners flowListenersService;
-
     @Inject
     protected LocalFlowRepositoryLoader repositoryLoader;
 
@@ -84,17 +71,8 @@ abstract class AbstractTriggerTest {
     }
 
     protected void run(String filename, Runnable runnable) throws IOException, URISyntaxException {
-        try (
-            AbstractScheduler scheduler = new JdbcScheduler(this.applicationContext, this.flowListenersService);
-            Worker worker = applicationContext.createBean(Worker.class, IdUtils.create(), 8, null);
-        ) {
-            worker.run();
-            scheduler.run();
-
-            repositoryLoader.load("null", Objects.requireNonNull(TriggerTest.class.getClassLoader().getResource("flows/" + filename)));
-
-            runnable.run();
-        }
+        repositoryLoader.load("null", Objects.requireNonNull(TriggerTest.class.getClassLoader().getResource("flows/" + filename)));
+        runnable.run();
     }
 
     protected Publish.Output publish() throws Exception {
