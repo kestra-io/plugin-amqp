@@ -1,5 +1,6 @@
 package io.kestra.plugin.amqp;
 
+import io.kestra.core.models.annotations.PluginProperty;
 import java.net.URI;
 import java.net.URISyntaxException;
 
@@ -30,8 +31,10 @@ public abstract class AbstractAmqpConnection extends Task implements AmqpConnect
     @Builder.Default
     private Property<String> port = Property.ofValue("5672");
 
+    @PluginProperty(secret = true)
     private Property<String> username;
 
+    @PluginProperty(secret = true)
     private Property<String> password;
 
     @Builder.Default
