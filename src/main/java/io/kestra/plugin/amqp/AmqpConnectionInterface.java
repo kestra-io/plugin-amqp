@@ -37,13 +37,13 @@ public interface AmqpConnectionInterface {
         title = "Username",
         description = "Username for the connection; uses broker default (often `guest`) when not set."
     )
-    @PluginProperty(group = "connection")
+    @PluginProperty(secret = true, group = "connection")
     Property<String> getUsername();
 
     @Schema(
         title = "Password",
         description = "Password for the connection; required when the broker enforces authentication."
     )
-    @PluginProperty(group = "connection")
+    @PluginProperty(secret = true, group = "connection")
     Property<String> getPassword();
 }
