@@ -25,8 +25,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
-import reactor.core.publisher.Flux;
-
 import static io.kestra.core.utils.Rethrow.throwFunction;
 import io.kestra.core.models.annotations.PluginProperty;
 
@@ -128,15 +126,6 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
                 .messagesCount(count)
                 .build();
         }
-    }
-
-    private Flux<Integer> buildFlowable(Flux<Message> flowable, Channel channel, RunContext runContext) throws Exception {
-        return flowable
-            .map(throwFunction(message ->
-            {
-                publish(channel, message, runContext);
-                return 1;
-            }));
     }
 
     private void publish(Channel channel, Message message, RunContext runContext) throws IOException, IllegalVariableEvaluationException {
