@@ -25,7 +25,7 @@ import io.kestra.core.models.annotations.PluginProperty;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Create an AMQP queue.",
+    title = "Create an AMQP queue",
     description = "Create a queue, including specified arguments."
 )
 @Plugin(
@@ -42,7 +42,7 @@ import io.kestra.core.models.annotations.PluginProperty;
                     host: localhost
                     port: 5672
                     username: guest
-                    password: guest
+                    password: "{{ secret('AMQP_PASSWORD') }}"
                     virtualHost: /my_vhost
                     name: kestramqp.queue
                 """

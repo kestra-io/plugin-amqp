@@ -34,7 +34,8 @@ import io.kestra.core.models.annotations.PluginProperty;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Publish a message to an AMQP exchange."
+    title = "Publish a message to an AMQP exchange",
+    description = "Publishes one or more messages to the configured exchange with a routing key, serializing the payload according to serdeType."
 )
 @Plugin(
     examples = {
@@ -50,7 +51,7 @@ import io.kestra.core.models.annotations.PluginProperty;
                     host: localhost
                     port: 5672
                     username: guest
-                    password: guest
+                    password: "{{ secret('AMQP_PASSWORD') }}"
                     virtualHost: /my_vhost
                     exchange: kestramqp.exchange
                     from:
@@ -96,6 +97,7 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
     @PluginProperty(group = "main")
     private Object from;
 
+    @Schema(title = "Serializer/deserializer used for the message payload")
     @Builder.Default
     @PluginProperty(group = "advanced")
     private Property<SerdeType> serdeType = Property.ofValue(SerdeType.STRING);

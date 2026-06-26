@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 
 import com.rabbitmq.client.BasicProperties;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Value;
 
@@ -14,19 +15,46 @@ import lombok.Value;
 @Builder
 
 public class Message implements io.kestra.core.models.tasks.Output {
+    @Schema(title = "MIME content type of the message body")
     String contentType;
+
+    @Schema(title = "MIME content encoding of the message body")
     String contentEncoding;
+
+    @Schema(title = "Arbitrary application-specific message headers")
     Map<String, Object> headers;
+
+    @Schema(title = "Delivery mode: 1 for non-persistent, 2 for persistent")
     Integer deliveryMode;
+
+    @Schema(title = "Message priority, 0 to 9")
     Integer priority;
+
+    @Schema(title = "Application message identifier")
     String messageId;
+
+    @Schema(title = "Correlation identifier used to match replies to requests")
     String correlationId;
+
+    @Schema(title = "Queue name replies should be sent to")
     String replyTo;
+
+    @Schema(title = "Time-to-live before the message expires")
     Duration expiration;
+
+    @Schema(title = "Time the message was created")
     Instant timestamp;
+
+    @Schema(title = "Application-specific message type")
     String type;
+
+    @Schema(title = "Identifier of the user that published the message")
     String userId;
+
+    @Schema(title = "Identifier of the publishing application")
     String appId;
+
+    @Schema(title = "Deserialized message body")
     Object data;
 
     public static Message of(byte[] message, SerdeType serdeType, BasicProperties properties) throws Exception {
