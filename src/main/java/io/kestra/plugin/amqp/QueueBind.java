@@ -26,7 +26,8 @@ import io.kestra.core.models.annotations.PluginProperty;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Bind a queue to an AMQP exchange."
+    title = "Bind a queue to an AMQP exchange",
+    description = "Binds an existing queue to an exchange with a routing key so the queue receives matching messages."
 )
 @Plugin(
     examples = {
@@ -42,7 +43,7 @@ import io.kestra.core.models.annotations.PluginProperty;
                     host: localhost
                     port: 5672
                     username: guest
-                    password: guest
+                    password: "{{ secret('AMQP_PASSWORD') }}"
                     virtualHost: /my_vhost
                     exchange: kestramqp.exchange
                     queue: kestramqp.queue
