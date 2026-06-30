@@ -76,6 +76,8 @@ public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerI
 
     private Property<String> username;
 
+    @PluginProperty(secret = true, group = "connection")
+    @ToString.Exclude
     private Property<String> password;
 
     @Builder.Default
