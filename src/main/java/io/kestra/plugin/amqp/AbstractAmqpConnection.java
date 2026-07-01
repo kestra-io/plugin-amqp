@@ -10,6 +10,7 @@ import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.Task;
 import io.kestra.core.runners.RunContext;
 
+import io.kestra.core.models.annotations.PluginProperty;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -32,6 +33,8 @@ public abstract class AbstractAmqpConnection extends Task implements AmqpConnect
 
     private Property<String> username;
 
+    @PluginProperty(secret = true, group = "connection")
+    @ToString.Exclude
     private Property<String> password;
 
     @Builder.Default
