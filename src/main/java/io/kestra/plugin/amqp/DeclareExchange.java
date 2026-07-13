@@ -24,7 +24,8 @@ import io.kestra.core.models.annotations.PluginProperty;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Create an AMQP exchange."
+    title = "Create an AMQP exchange",
+    description = "Declares an exchange on the broker, creating it with the given type and durability if it does not already exist."
 )
 @Plugin(
     examples = {
@@ -40,7 +41,7 @@ import io.kestra.core.models.annotations.PluginProperty;
                     host: localhost
                     port: 5672
                     username: guest
-                    password: guest
+                    password: "{{ secret('AMQP_PASSWORD') }}"
                     virtualHost: /my_vhost
                     name: kestramqp.exchange
                 """

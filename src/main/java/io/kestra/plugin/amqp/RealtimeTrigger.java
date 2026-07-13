@@ -56,7 +56,7 @@ import io.kestra.core.models.annotations.PluginProperty;
                     host: localhost
                     port: 5672
                     username: guest
-                    password: guest
+                    password: "{{ secret('AMQP_PASSWORD') }}"
                     virtualHost: /my_vhost
                     queue: amqpTrigger.queue
                 """
@@ -76,6 +76,8 @@ public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerI
 
     private Property<String> username;
 
+    @PluginProperty(secret = true, group = "connection")
+    @ToString.Exclude
     private Property<String> password;
 
     @Builder.Default
