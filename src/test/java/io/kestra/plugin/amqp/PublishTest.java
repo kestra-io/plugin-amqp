@@ -110,11 +110,10 @@ class PublishTest extends AbstractTest {
         URI uri = consumeOutput.getUri();
 
         try (
-            var inputStream = runContextFactory.of().storage().getFile(uri);
-            var reader = new BufferedReader(new InputStreamReader(inputStream), FileSerde.BUFFER_SIZE)
+            var inputStream = runContextFactory.of().storage().getFile(uri)
         ) {
 
-            List<Message> received = FileSerde.readAll(reader, Message.class)
+            List<Message> received = FileSerde.readAll(inputStream, Message.class)
                 .collectList()
                 .block();
 
