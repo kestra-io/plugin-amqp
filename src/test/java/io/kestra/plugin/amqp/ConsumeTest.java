@@ -50,12 +50,11 @@ class ConsumeTest extends AbstractTest {
         URI uri = output.getUri();
 
         try (
-            var inputStream = runContextFactory.of().storage().getFile(uri);
-            var reader = new BufferedReader(new InputStreamReader(inputStream), FileSerde.BUFFER_SIZE)
+            var inputStream = runContextFactory.of().storage().getFile(uri)
         ) {
 
             // Deserialize the Ion messages into a list
-            List<Message> messages = FileSerde.readAll(reader, Message.class)
+            List<Message> messages = FileSerde.readAll(inputStream, Message.class)
                 .collectList()
                 .block();
 
@@ -96,10 +95,9 @@ class ConsumeTest extends AbstractTest {
         var uri = output.getUri();
 
         try (
-            var inputStream = runContextFactory.of().storage().getFile(uri);
-            var reader = new BufferedReader(new InputStreamReader(inputStream), FileSerde.BUFFER_SIZE)
+            var inputStream = runContextFactory.of().storage().getFile(uri)
         ) {
-            var messages = FileSerde.readAll(reader, Message.class)
+            var messages = FileSerde.readAll(inputStream, Message.class)
                 .collectList()
                 .block();
 

@@ -92,9 +92,9 @@ class TriggerTest extends AbstractTriggerTest {
             .maxDuration(Property.ofValue(Duration.ofMillis(1)))
             .build();
 
-        Map.Entry<ConditionContext, io.kestra.core.models.triggers.Trigger> triggerContext = TestsUtils.mockTrigger(runContextFactory, trigger);
+        Map.Entry<ConditionContext, io.kestra.core.scheduler.model.TriggerState> triggerContext = TestsUtils.mockTrigger(runContextFactory, trigger);
         var firstEvaluationStartedAt = Instant.now();
-        var first = trigger.evaluate(triggerContext.getKey(), triggerContext.getValue());
+        var first = trigger.evaluate(triggerContext.getKey(), triggerContext.getValue().context());
         var firstElapsed = Duration.between(firstEvaluationStartedAt, Instant.now());
 
         assertThat(first.isEmpty(), is(true));
@@ -117,8 +117,8 @@ class TriggerTest extends AbstractTriggerTest {
             .maxDuration(Property.ofValue(Duration.ofSeconds(2)))
             .build();
 
-        Map.Entry<ConditionContext, io.kestra.core.models.triggers.Trigger> secondTriggerContext = TestsUtils.mockTrigger(runContextFactory, secondTrigger);
-        var second = secondTrigger.evaluate(secondTriggerContext.getKey(), secondTriggerContext.getValue());
+        Map.Entry<ConditionContext, io.kestra.core.scheduler.model.TriggerState> secondTriggerContext = TestsUtils.mockTrigger(runContextFactory, secondTrigger);
+        var second = secondTrigger.evaluate(secondTriggerContext.getKey(), secondTriggerContext.getValue().context());
         assertThat(second.isPresent(), is(true));
 
         var count = (Integer) second.orElseThrow().getTrigger().getVariables().get("count");
