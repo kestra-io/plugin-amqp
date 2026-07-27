@@ -70,6 +70,7 @@ import io.kestra.core.models.annotations.PluginProperty;
         @Metric(
             name = "consumed.records",
             type = Counter.TYPE,
+            unit = "records",
             description = "The total number of records consumed from the AMQP queue."
         )
     }
@@ -347,7 +348,7 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
 
         @Schema(
             title = "URI of file storing consumed messages",
-            description = "Internal storage path to the Ion-serialized batch returned as `taskrun.outputs.uri` or `trigger.uri`."
+            description = "Internal storage path to the ION-serialized batch returned as `taskrun.outputs.uri` or `trigger.uri`."
         )
         private final URI uri;
     }
