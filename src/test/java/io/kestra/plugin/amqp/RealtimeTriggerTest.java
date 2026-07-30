@@ -1,8 +1,12 @@
 package io.kestra.plugin.amqp;
 
-import java.util.List;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Test;
 
@@ -18,12 +22,23 @@ import static org.hamcrest.Matchers.is;
 class RealtimeTriggerTest extends AbstractTriggerTest {
     @Test
     void flow() throws Exception {
+        // the execution queue emits one message per execution state change, so both the latch and the
+        // assertions are based on distinct execution identifiers instead of the raw message count
+        Set<String> executionIds = ConcurrentHashMap.newKeySet();
         CountDownLatch queueCount = new CountDownLatch(4);
 
-        Flux<Execution> receive = TestsUtils.receive(executionQueue, execution ->
+        Flux<Execution> receive = TestsUtils.receive(executionQueue, either ->
         {
-            queueCount.countDown();
-            assertThat(execution.getLeft().getFlowId(), is("realtime"));
+            if (either.isRight()) {
+                return;
+            }
+
+            Execution execution = either.getLeft();
+            assertThat(execution.getFlowId(), is("realtime"));
+
+            if (executionIds.add(execution.getId())) {
+                queueCount.countDown();
+            }
         });
 
         this.run("realtime.yaml", throwRunnable(() ->
@@ -33,10 +48,20 @@ class RealtimeTriggerTest extends AbstractTriggerTest {
 
             boolean await = queueCount.await(1, TimeUnit.MINUTES);
             assertThat(await, is(true));
-            List<Execution> executionList = receive.collectList().block();
+            Collection<Execution> executions = distinctExecutions(receive);
 
-            assertThat(executionList.size(), is(4));
-            assertThat(executionList.stream().filter(execution -> execution.getTrigger().getVariables().get("data").equals("value-2")).count(), is(2L));
+            assertThat(executions.size(), is(4));
+            assertThat(executions.stream().filter(execution -> execution.getTrigger().getVariables().get("data").equals("value-2")).count(), is(2L));
         }));
+    }
+
+    /**
+     * Collects the buffered execution messages, keeping the latest message of each execution.
+     */
+    private Collection<Execution> distinctExecutions(Flux<Execution> receive) {
+        return receive.collectList().block()
+            .stream()
+            .collect(Collectors.toMap(Execution::getId, execution -> execution, (first, last) -> last, LinkedHashMap::new))
+            .values();
     }
 }
