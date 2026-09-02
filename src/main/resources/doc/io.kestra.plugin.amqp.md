@@ -4,7 +4,7 @@ Publish and consume messages on AMQP brokers (RabbitMQ and compatible) from Kest
 
 ## Common properties
 
-Set `host`, `port` (default `5672`), `username`, `password`, and `virtualHost` (default `/`) on each task. Store credentials in [secrets](https://kestra.io/docs/concepts/secret) and apply them globally with [plugin defaults](https://kestra.io/docs/workflow-components/plugin-defaults).
+Set `host`, `port` (default `5672`), `username`, `password`, and `virtualHost` (default `/`) on each task. Store credentials in [secrets](https://kestra.io/docs/concepts/secret) and set them on each task.
 
 ## Tasks
 
