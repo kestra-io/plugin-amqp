@@ -8,6 +8,7 @@ import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -104,8 +105,37 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
     @PluginProperty(group = "execution")
     private Property<Duration> maxDuration;
 
+    @Builder.Default
+    @Getter(AccessLevel.NONE)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private final AtomicBoolean cancelled = new AtomicBoolean(false);
+
+    @Builder.Default
+    @Getter(AccessLevel.NONE)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private final AtomicReference<ConsumeThread> runningThread = new AtomicReference<>();
+
+    /**
+     * Unblocks an in-flight {@link #run(RunContext)} call, e.g. when the owning trigger is killed.
+     * Must never block nor throw: the caller (a worker thread executing kill/stop) cannot afford to hang.
+     */
+    public void cancel() {
+        if (this.cancelled.compareAndSet(false, true)) {
+            ConsumeThread thread = this.runningThread.get();
+            if (thread != null) {
+                thread.abort();
+            }
+        }
+    }
+
     @Override
     public Consume.Output run(RunContext runContext) throws Exception {
+        if (this.cancelled.get()) {
+            return Output.builder().count(0).build();
+        }
+
         File tempFile = runContext.workingDir().createTempFile(".ion").toFile();
         AtomicInteger total = new AtomicInteger();
         Instant started = Instant.now();
@@ -134,6 +164,7 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
                 () -> this.ended(total, started, rMaxRecords, rMaxDuration)
             )
         ) {
+            this.runningThread.set(thread);
             thread.start();
             thread.join();
 
@@ -159,7 +190,10 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
 
     @SuppressWarnings("RedundantIfStatement")
     private boolean ended(AtomicInteger count, Instant start, Integer maxRecords, Duration maxDuration) {
-        // Returns true if maxRecords or maxDuration reached
+        // Returns true if maxRecords or maxDuration reached, or the task was cancelled (e.g. trigger killed)
+        if (this.cancelled.get()) {
+            return true;
+        }
         if (maxRecords != null && count.get() >= maxRecords) {
             return true;
         }
@@ -202,6 +236,27 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
 
         public Exception getException() {
             return this.exception.get();
+        }
+
+        /**
+         * Forcibly and immediately tears down the client, unblocking a hung {@code basicConsume}/{@code Await}.
+         * Uses {@code abort()} rather than {@code close()}: it is non-blocking and never throws, unlike the
+         * graceful close used on the happy path.
+         */
+        void abort() {
+            Channel ch = this.channel;
+            if (ch != null) {
+                try {
+                    ch.abort();
+                } catch (IOException e) {
+                    // abort() is not expected to throw, guarded defensively
+                }
+            }
+
+            Connection conn = this.connection;
+            if (conn != null) {
+                conn.abort();
+            }
         }
 
         @Override
@@ -296,16 +351,19 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
 
         @Override
         public void close() throws Exception {
-            try {
-                // Try to cancel, but if already cancelled, ignore the error
-                channel.basicCancel(
-                    runContext.render(consumeInterface.getConsumerTag())
-                        .as(String.class).orElseThrow()
-                );
-            } catch (IOException e) {
-                // Ignore 'Unknown consumerTag' since it means the consumer was already cancelled
-                if (!e.getMessage().contains("Unknown consumerTag")) {
-                    runContext.logger().warn("Error during consumer cancellation", e);
+            // channel/connection can still be null here if a kill happened while factory.newConnection() was blocking
+            if (channel != null) {
+                try {
+                    // Try to cancel, but if already cancelled, ignore the error
+                    channel.basicCancel(
+                        runContext.render(consumeInterface.getConsumerTag())
+                            .as(String.class).orElseThrow()
+                    );
+                } catch (IOException e) {
+                    // Ignore 'Unknown consumerTag' since it means the consumer was already cancelled
+                    if (!e.getMessage().contains("Unknown consumerTag")) {
+                        runContext.logger().warn("Error during consumer cancellation", e);
+                    }
                 }
             }
 
@@ -321,16 +379,20 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
             }
 
             // Safely close channel and connection
-            try {
-                channel.close();
-            } catch (Exception e) {
-                runContext.logger().debug("Channel already closed or failed to close cleanly", e);
+            if (channel != null) {
+                try {
+                    channel.close();
+                } catch (Exception e) {
+                    runContext.logger().debug("Channel already closed or failed to close cleanly", e);
+                }
             }
 
-            try {
-                connection.close();
-            } catch (Exception e) {
-                runContext.logger().debug("Connection already closed or failed to close cleanly", e);
+            if (connection != null) {
+                try {
+                    connection.close();
+                } catch (Exception e) {
+                    runContext.logger().debug("Connection already closed or failed to close cleanly", e);
+                }
             }
 
             runContext.logger().debug("Consumer closed, last delivery tag: {}", lastDeliveryTag.get());

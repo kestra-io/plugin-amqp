@@ -2,6 +2,10 @@ package io.kestra.plugin.amqp;
 
 import java.time.Duration;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
 
@@ -97,8 +101,32 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
     @Builder.Default
     private Property<SerdeType> serdeType = Property.ofValue(SerdeType.STRING);
 
+    private static final Duration TERMINATION_TIMEOUT = Duration.ofSeconds(5);
+
+    @Builder.Default
+    @Getter(AccessLevel.NONE)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private final AtomicBoolean isActive = new AtomicBoolean(true);
+
+    @Builder.Default
+    @Getter(AccessLevel.NONE)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private final CountDownLatch waitForTermination = new CountDownLatch(1);
+
+    @Builder.Default
+    @Getter(AccessLevel.NONE)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private final AtomicReference<Consume> currentTask = new AtomicReference<>();
+
     @Override
     public Optional<Execution> evaluate(ConditionContext conditionContext, TriggerContext context) throws Exception {
+        if (!isActive.get()) {
+            return Optional.empty();
+        }
+
         RunContext runContext = conditionContext.getRunContext();
         Logger logger = runContext.logger();
 
@@ -117,7 +145,15 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
             .serdeType(this.serdeType)
             .build();
 
-        Consume.Output run = task.run(runContext);
+        currentTask.set(task);
+
+        Consume.Output run;
+        try {
+            run = task.run(runContext);
+        } finally {
+            currentTask.set(null);
+            waitForTermination.countDown();
+        }
 
         if (logger.isDebugEnabled()) {
             logger.debug("Consumed '{}' messaged.", run.getCount());
@@ -130,5 +166,42 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
         Execution execution = TriggerService.generateExecution(this, conditionContext, context, run);
 
         return Optional.of(execution);
+    }
+
+    /**
+     * {@inheritDoc}
+     **/
+    @Override
+    public void kill() {
+        stop(true);
+    }
+
+    /**
+     * {@inheritDoc}
+     **/
+    @Override
+    public void stop() {
+        stop(false); // must be non-blocking
+    }
+
+    private void stop(boolean wait) {
+        if (!isActive.compareAndSet(true, false)) {
+            return;
+        }
+
+        Consume task = currentTask.get();
+        if (task != null) {
+            task.cancel();
+        }
+
+        // only await when an evaluation is actually in flight: a poll cycle may be killed between
+        // evaluations, when nothing will ever count the latch down
+        if (wait && task != null) {
+            try {
+                waitForTermination.await(TERMINATION_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
     }
 }
