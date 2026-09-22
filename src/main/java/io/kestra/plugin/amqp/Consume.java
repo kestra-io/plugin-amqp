@@ -165,8 +165,12 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
             )
         ) {
             this.runningThread.set(thread);
-            thread.start();
-            thread.join();
+            try {
+                thread.start();
+                thread.join();
+            } finally {
+                this.runningThread.set(null);
+            }
 
             if (thread.getException() != null) {
                 throw thread.getException();

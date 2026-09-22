@@ -43,7 +43,9 @@ class TriggerKillTest extends AbstractTriggerTest {
         evaluation.join(Duration.ofSeconds(30).toMillis());
 
         assertThat(evaluation.isAlive(), is(false));
-        assertThat(killElapsed.toSeconds(), lessThan(30L));
+        // kill() must be non-blocking: it flags cancellation and returns immediately, it does not
+        // await the hanging evaluate() (that's what evaluation.join() above is for)
+        assertThat(killElapsed.toMillis(), lessThan(500L));
     }
 
     @Test

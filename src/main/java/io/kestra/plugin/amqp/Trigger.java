@@ -2,8 +2,6 @@ package io.kestra.plugin.amqp;
 
 import java.time.Duration;
 import java.util.Optional;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -101,19 +99,11 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
     @Builder.Default
     private Property<SerdeType> serdeType = Property.ofValue(SerdeType.STRING);
 
-    private static final Duration TERMINATION_TIMEOUT = Duration.ofSeconds(5);
-
     @Builder.Default
     @Getter(AccessLevel.NONE)
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private final AtomicBoolean isActive = new AtomicBoolean(true);
-
-    @Builder.Default
-    @Getter(AccessLevel.NONE)
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
-    private final CountDownLatch waitForTermination = new CountDownLatch(1);
 
     @Builder.Default
     @Getter(AccessLevel.NONE)
@@ -160,7 +150,6 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
             run = task.run(runContext);
         } finally {
             currentTask.set(null);
-            waitForTermination.countDown();
         }
 
         if (logger.isDebugEnabled()) {
@@ -181,7 +170,7 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
      **/
     @Override
     public void kill() {
-        stop(true);
+        stop(); // must be non-blocking: the worker dispatches kill() inline with a tight time budget
     }
 
     /**
@@ -189,10 +178,6 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
      **/
     @Override
     public void stop() {
-        stop(false); // must be non-blocking
-    }
-
-    private void stop(boolean wait) {
         if (!isActive.compareAndSet(true, false)) {
             return;
         }
@@ -200,16 +185,6 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
         var task = currentTask.get();
         if (task != null) {
             task.cancel();
-        }
-
-        // only await when an evaluation is actually in flight: a poll cycle may be killed between
-        // evaluations, when nothing will ever count the latch down
-        if (wait && task != null) {
-            try {
-                waitForTermination.await(TERMINATION_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
         }
     }
 }
