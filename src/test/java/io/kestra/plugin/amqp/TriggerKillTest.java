@@ -2,10 +2,12 @@ package io.kestra.plugin.amqp;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Map;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 
+import io.kestra.core.models.conditions.ConditionContext;
 import io.kestra.core.models.executions.Execution;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.utils.IdUtils;
@@ -26,43 +28,9 @@ class TriggerKillTest extends AbstractTriggerTest {
     @Test
     void killShouldUnblockAnEvaluateHangingOnAnEmptyQueue() throws Exception {
         var suffix = IdUtils.create();
-        var queue = "amqpTrigger.queue.kill." + suffix;
-
-        CreateQueue.builder()
-            .host(Property.ofValue("localhost"))
-            .port(Property.ofValue("5672"))
-            .username(Property.ofValue("guest"))
-            .password(Property.ofValue("guest"))
-            .virtualHost(Property.ofValue("/my_vhost"))
-            .name(Property.ofValue(queue))
-            .build()
-            .run(runContextFactory.of());
-
-        var trigger = Trigger.builder()
-            .id("watch-kill-" + suffix)
-            .type(Trigger.class.getName())
-            .host(Property.ofValue("localhost"))
-            .port(Property.ofValue("5672"))
-            .username(Property.ofValue("guest"))
-            .password(Property.ofValue("guest"))
-            .virtualHost(Property.ofValue("/my_vhost"))
-            .queue(Property.ofValue(queue))
-            .consumerTag(Property.ofValue("KestraTriggerKillTest-" + suffix))
-            .serdeType(Property.ofValue(SerdeType.STRING))
-            .maxRecords(Property.ofValue(1000))
-            .build();
-
-        var triggerContext = TestsUtils.mockTrigger(runContextFactory, trigger);
-
-        Thread evaluation = new Thread(() -> {
-            try {
-                trigger.evaluate(triggerContext.getKey(), triggerContext.getValue());
-            } catch (Exception ignored) {
-                // evaluation is expected to be interrupted by the kill
-            }
-        });
-        evaluation.setDaemon(true);
-        evaluation.start();
+        var queue = declareQueue("amqpTrigger.queue.kill." + suffix);
+        var trigger = triggerOnEmptyQueue("watch-kill-" + suffix, "KestraTriggerKillTest-" + suffix, queue);
+        var evaluation = evaluateInBackground(trigger, TestsUtils.mockTrigger(runContextFactory, trigger));
 
         // give the evaluation time to actually enter the blocking wait inside Consume
         Thread.sleep(500);
@@ -111,43 +79,9 @@ class TriggerKillTest extends AbstractTriggerTest {
     @Test
     void stopShouldReturnWithoutBlocking() throws Exception {
         var suffix = IdUtils.create();
-        var queue = "amqpTrigger.queue.stop." + suffix;
-
-        CreateQueue.builder()
-            .host(Property.ofValue("localhost"))
-            .port(Property.ofValue("5672"))
-            .username(Property.ofValue("guest"))
-            .password(Property.ofValue("guest"))
-            .virtualHost(Property.ofValue("/my_vhost"))
-            .name(Property.ofValue(queue))
-            .build()
-            .run(runContextFactory.of());
-
-        var trigger = Trigger.builder()
-            .id("watch-stop-" + suffix)
-            .type(Trigger.class.getName())
-            .host(Property.ofValue("localhost"))
-            .port(Property.ofValue("5672"))
-            .username(Property.ofValue("guest"))
-            .password(Property.ofValue("guest"))
-            .virtualHost(Property.ofValue("/my_vhost"))
-            .queue(Property.ofValue(queue))
-            .consumerTag(Property.ofValue("KestraTriggerStopTest-" + suffix))
-            .serdeType(Property.ofValue(SerdeType.STRING))
-            .maxRecords(Property.ofValue(1000))
-            .build();
-
-        var triggerContext = TestsUtils.mockTrigger(runContextFactory, trigger);
-
-        Thread evaluation = new Thread(() -> {
-            try {
-                trigger.evaluate(triggerContext.getKey(), triggerContext.getValue());
-            } catch (Exception ignored) {
-                // evaluation is expected to be interrupted by the stop
-            }
-        });
-        evaluation.setDaemon(true);
-        evaluation.start();
+        var queue = declareQueue("amqpTrigger.queue.stop." + suffix);
+        var trigger = triggerOnEmptyQueue("watch-stop-" + suffix, "KestraTriggerStopTest-" + suffix, queue);
+        var evaluation = evaluateInBackground(trigger, TestsUtils.mockTrigger(runContextFactory, trigger));
 
         Thread.sleep(500);
 
@@ -159,5 +93,53 @@ class TriggerKillTest extends AbstractTriggerTest {
 
         evaluation.join(Duration.ofSeconds(30).toMillis());
         assertThat(evaluation.isAlive(), is(false));
+    }
+
+    private String declareQueue(String queue) throws Exception {
+        CreateQueue.builder()
+            .host(Property.ofValue("localhost"))
+            .port(Property.ofValue("5672"))
+            .username(Property.ofValue("guest"))
+            .password(Property.ofValue("guest"))
+            .virtualHost(Property.ofValue("/my_vhost"))
+            .name(Property.ofValue(queue))
+            .build()
+            .run(runContextFactory.of());
+
+        return queue;
+    }
+
+    private Trigger triggerOnEmptyQueue(String id, String consumerTag, String queue) {
+        return Trigger.builder()
+            .id(id)
+            .type(Trigger.class.getName())
+            .host(Property.ofValue("localhost"))
+            .port(Property.ofValue("5672"))
+            .username(Property.ofValue("guest"))
+            .password(Property.ofValue("guest"))
+            .virtualHost(Property.ofValue("/my_vhost"))
+            .queue(Property.ofValue(queue))
+            .consumerTag(Property.ofValue(consumerTag))
+            .serdeType(Property.ofValue(SerdeType.STRING))
+            .maxRecords(Property.ofValue(1000))
+            .build();
+    }
+
+    /**
+     * Runs {@code trigger.evaluate(...)} on a daemon thread: against an empty queue with a high
+     * {@code maxRecords}, it would otherwise sit in the 1-minute {@code Await} inside {@link Consume}.
+     */
+    private Thread evaluateInBackground(Trigger trigger, Map.Entry<ConditionContext, io.kestra.core.models.triggers.Trigger> triggerContext) {
+        Thread evaluation = new Thread(() -> {
+            try {
+                trigger.evaluate(triggerContext.getKey(), triggerContext.getValue());
+            } catch (Exception ignored) {
+                // evaluation is expected to be interrupted by the kill/stop
+            }
+        });
+        evaluation.setDaemon(true);
+        evaluation.start();
+
+        return evaluation;
     }
 }
