@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import io.kestra.core.models.conditions.ConditionContext;
 import io.kestra.core.models.executions.Execution;
 import io.kestra.core.models.property.Property;
+import io.kestra.core.runners.RunContext;
 import io.kestra.core.utils.IdUtils;
 import io.kestra.core.utils.TestsUtils;
 import io.kestra.plugin.amqp.models.SerdeType;
@@ -74,6 +75,54 @@ class TriggerKillTest extends AbstractTriggerTest {
 
         assertThat(result.isEmpty(), is(true));
         assertThat(evaluateElapsed.toMillis(), lessThan(500L));
+    }
+
+    /**
+     * Reproduces the race window in {@code evaluate()} between its top {@code isActive.get()} check and
+     * {@code currentTask.set(task)}: a {@code kill()} landing in that window used to be lost for the poll
+     * cycle, letting the about-to-run task execute uncancelled. {@link ConditionContext#getRunContext()}
+     * is called right after the top check and before the task is built/published, so killing the trigger
+     * from there deterministically reproduces the window without relying on timing.
+     */
+    @Test
+    void killLandingBetweenActiveCheckAndTaskPublicationShouldStillCancelTheTask() throws Exception {
+        var suffix = IdUtils.create();
+        var trigger = Trigger.builder()
+            .id("watch-kill-race-" + suffix)
+            .type(Trigger.class.getName())
+            .host(Property.ofValue("localhost"))
+            // nothing listens here: if the race were lost and the task actually ran, connecting would
+            // fail fast with a real exception instead of evaluate() returning cleanly
+            .port(Property.ofValue("59999"))
+            .username(Property.ofValue("guest"))
+            .password(Property.ofValue("guest"))
+            .virtualHost(Property.ofValue("/my_vhost"))
+            .queue(Property.ofValue("amqpTrigger.queue"))
+            .maxRecords(Property.ofValue(1))
+            .build();
+
+        var mocked = TestsUtils.mockTrigger(runContextFactory, trigger);
+        var realContext = mocked.getKey();
+
+        var killingDuringTaskBuild = new ConditionContext(
+            realContext.getFlow(),
+            realContext.getExecution(),
+            realContext.getRunContext(),
+            realContext.getVariables(),
+            realContext.getMultipleConditionStorage()
+        ) {
+            @Override
+            public RunContext getRunContext() {
+                trigger.kill();
+                return super.getRunContext();
+            }
+        };
+
+        Optional<Execution> result = assertDoesNotThrow(
+            () -> trigger.evaluate(killingDuringTaskBuild, mocked.getValue())
+        );
+
+        assertThat(result.isEmpty(), is(true));
     }
 
     @Test

@@ -149,6 +149,14 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
 
         Consume.Output run;
         try {
+            // re-check after publishing the task: a kill()/stop() landing between the isActive check
+            // at the top of this method and currentTask.set(task) above would otherwise see no task to
+            // cancel and be lost for this poll cycle, letting an unkillable task run.
+            if (!isActive.get()) {
+                task.cancel();
+                return Optional.empty();
+            }
+
             run = task.run(runContext);
         } finally {
             currentTask.set(null);
@@ -189,7 +197,7 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
             return;
         }
 
-        Consume task = currentTask.get();
+        var task = currentTask.get();
         if (task != null) {
             task.cancel();
         }

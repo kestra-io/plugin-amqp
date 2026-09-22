@@ -123,7 +123,7 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
      */
     public void cancel() {
         if (this.cancelled.compareAndSet(false, true)) {
-            ConsumeThread thread = this.runningThread.get();
+            var thread = this.runningThread.get();
             if (thread != null) {
                 thread.abort();
             }
@@ -215,8 +215,11 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
         private final boolean autoAck;
         private final Consumer<Message> consumer;
 
-        private Connection connection;
-        private Channel channel;
+        // Written by this thread inside run(), read from the killing thread via abort(): must be
+        // volatile so that write is visible across threads without relying on thread.join() (which
+        // close(), but not abort(), waits for).
+        private volatile Connection connection;
+        private volatile Channel channel;
 
         public ConsumeThread(ConnectionFactory factory,
             RunContext runContext,
@@ -244,16 +247,17 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
          * graceful close used on the happy path.
          */
         void abort() {
-            Channel ch = this.channel;
+            var ch = this.channel;
             if (ch != null) {
                 try {
                     ch.abort();
                 } catch (IOException e) {
                     // abort() is not expected to throw, guarded defensively
+                    runContext.logger().debug("Error while aborting channel", e);
                 }
             }
 
-            Connection conn = this.connection;
+            var conn = this.connection;
             if (conn != null) {
                 conn.abort();
             }
