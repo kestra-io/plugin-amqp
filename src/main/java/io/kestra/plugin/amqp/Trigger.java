@@ -2,6 +2,8 @@ package io.kestra.plugin.amqp;
 
 import java.time.Duration;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
 
@@ -83,8 +85,11 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
     @Schema(
         title = "Automatic acknowledgment",
         description = """
-            When true, the broker acknowledges messages as soon as they are delivered.
-            When false, the trigger ACKs after processing and NACKs on failure.
+            When true, the broker acknowledges messages as soon as they are delivered; they are not
+            requeued if the trigger is killed mid-batch.
+            When false, the trigger sends a single bulk acknowledgment for the whole batch once it is
+            durably stored, and NACKs a message on processing failure; if killed before that point,
+            the broker requeues every unacknowledged message.
             """
     )
     @PluginProperty(group = "advanced")
@@ -97,8 +102,24 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
     @Builder.Default
     private Property<SerdeType> serdeType = Property.ofValue(SerdeType.STRING);
 
+    @Builder.Default
+    @Getter(AccessLevel.NONE)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private final AtomicBoolean isActive = new AtomicBoolean(true);
+
+    @Builder.Default
+    @Getter(AccessLevel.NONE)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private final AtomicReference<Consume> currentTask = new AtomicReference<>();
+
     @Override
     public Optional<Execution> evaluate(ConditionContext conditionContext, TriggerContext context) throws Exception {
+        if (!isActive.get()) {
+            return Optional.empty();
+        }
+
         RunContext runContext = conditionContext.getRunContext();
         Logger logger = runContext.logger();
 
@@ -117,7 +138,28 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
             .serdeType(this.serdeType)
             .build();
 
-        Consume.Output run = task.run(runContext);
+        currentTask.set(task);
+
+        Consume.Output run;
+        try {
+            // re-check after publishing the task: a kill()/stop() landing between the isActive check
+            // at the top of this method and currentTask.set(task) above would otherwise see no task to
+            // cancel and be lost for this poll cycle, letting an unkillable task run.
+            if (!isActive.get()) {
+                task.cancel();
+                return Optional.empty();
+            }
+
+            run = task.run(runContext);
+        } finally {
+            currentTask.set(null);
+        }
+
+        // task.run() can return normally with a partial batch if it was killed mid-consume (Await
+        // exits cleanly once cancelled is set): re-check isActive so a killed trigger never publishes.
+        if (!isActive.get()) {
+            return Optional.empty();
+        }
 
         if (logger.isDebugEnabled()) {
             logger.debug("Consumed '{}' messaged.", run.getCount());
@@ -130,5 +172,28 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
         Execution execution = TriggerService.generateExecution(this, conditionContext, context, run);
 
         return Optional.of(execution);
+    }
+
+    /**
+     * {@inheritDoc}
+     **/
+    @Override
+    public void kill() {
+        stop(); // must be non-blocking: the worker dispatches kill() inline with a tight time budget
+    }
+
+    /**
+     * {@inheritDoc}
+     **/
+    @Override
+    public void stop() {
+        if (!isActive.compareAndSet(true, false)) {
+            return;
+        }
+
+        var task = currentTask.get();
+        if (task != null) {
+            task.cancel();
+        }
     }
 }
