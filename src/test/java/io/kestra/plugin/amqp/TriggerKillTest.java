@@ -2,22 +2,31 @@ package io.kestra.plugin.amqp;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Test;
+
+import com.google.common.collect.ImmutableMap;
 
 import io.kestra.core.models.conditions.ConditionContext;
 import io.kestra.core.models.executions.Execution;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.runners.RunContext;
+import io.kestra.core.serializers.JacksonMapper;
 import io.kestra.core.utils.IdUtils;
 import io.kestra.core.utils.TestsUtils;
+import io.kestra.plugin.amqp.models.Message;
 import io.kestra.plugin.amqp.models.SerdeType;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 /**
@@ -127,6 +136,62 @@ class TriggerKillTest extends AbstractTriggerTest {
         assertThat(result.isEmpty(), is(true));
     }
 
+    /**
+     * Reproduces the data-loss window described in review thread PRRT_kwDOItooUc6k22ni: a kill landing
+     * mid-batch exits the internal {@code Await} cleanly, so {@code task.run()} returns with a partial,
+     * non-zero count. Without the {@code isActive} re-check in {@code evaluate()}, that would still
+     * generate an execution for a trigger that was killed. Uses a dedicated queue (not the shared
+     * {@code amqpTrigger.queue}) with exactly one pre-published message, published straight to the queue
+     * via the default exchange so no binding leaks into other test classes.
+     */
+    @Test
+    void killMidBatchShouldNotGenerateExecutionAndShouldRequeueTheMessage() throws Exception {
+        var suffix = IdUtils.create();
+        var queue = declareQueue("amqpTrigger.queue.killmidbatch." + suffix);
+        publishToQueue(queue, "kill-mid-batch-" + suffix);
+
+        var trigger = Trigger.builder()
+            .id("watch-kill-midbatch-" + suffix)
+            .type(Trigger.class.getName())
+            .host(Property.ofValue("localhost"))
+            .port(Property.ofValue("5672"))
+            .username(Property.ofValue("guest"))
+            .password(Property.ofValue("guest"))
+            .virtualHost(Property.ofValue("/my_vhost"))
+            .queue(Property.ofValue(queue))
+            .consumerTag(Property.ofValue("KestraTriggerKillMidBatchTest-" + suffix))
+            .serdeType(Property.ofValue(SerdeType.STRING))
+            // large enough that consuming the single pre-published message doesn't complete the batch on its own
+            .maxRecords(Property.ofValue(100))
+            .build();
+
+        var triggerContext = TestsUtils.mockTrigger(runContextFactory, trigger);
+        var result = new AtomicReference<Optional<Execution>>();
+        var failure = new AtomicReference<Exception>();
+        var evaluation = new Thread(() -> {
+            try {
+                result.set(trigger.evaluate(triggerContext.getKey(), triggerContext.getValue()));
+            } catch (Exception e) {
+                failure.set(e);
+            }
+        });
+        evaluation.setDaemon(true);
+        evaluation.start();
+
+        // give RabbitMQ time to deliver the single pre-published message and the callback to consume it
+        Thread.sleep(500);
+
+        trigger.kill();
+        evaluation.join(Duration.ofSeconds(30).toMillis());
+
+        assertThat(evaluation.isAlive(), is(false));
+        assertThat(failure.get(), is(nullValue()));
+        assertThat(result.get(), is(notNullValue()));
+        assertThat(result.get().isEmpty(), is(true));
+
+        assertMessageIsRedelivered(queue);
+    }
+
     @Test
     void stopShouldReturnWithoutBlocking() throws Exception {
         var suffix = IdUtils.create();
@@ -158,6 +223,55 @@ class TriggerKillTest extends AbstractTriggerTest {
             .run(runContextFactory.of());
 
         return queue;
+    }
+
+    /**
+     * Publishes directly to {@code queue} via the default exchange (routing key = queue name), so the
+     * test doesn't need to declare or bind a dedicated exchange.
+     */
+    private void publishToQueue(String queue, String data) throws Exception {
+        Publish.builder()
+            .host(Property.ofValue("localhost"))
+            .port(Property.ofValue("5672"))
+            .username(Property.ofValue("guest"))
+            .password(Property.ofValue("guest"))
+            .virtualHost(Property.ofValue("/my_vhost"))
+            .exchange(Property.ofValue(""))
+            .routingKey(Property.ofValue(queue))
+            .from(Arrays.asList(
+                JacksonMapper.toMap(
+                    Message.builder()
+                        .headers(ImmutableMap.of("testHeader", "KestraTriggerKillTest"))
+                        .timestamp(Instant.now())
+                        .data(data)
+                        .build()
+                )
+            ))
+            .build()
+            .run(runContextFactory.of());
+    }
+
+    /**
+     * Consumes {@code queue} with a short-lived consumer: the message killed mid-batch must still be
+     * there (or already redelivered) once the aborted connection releases it back to the broker.
+     */
+    private void assertMessageIsRedelivered(String queue) throws Exception {
+        var consume = Consume.builder()
+            .host(Property.ofValue("localhost"))
+            .port(Property.ofValue("5672"))
+            .username(Property.ofValue("guest"))
+            .password(Property.ofValue("guest"))
+            .virtualHost(Property.ofValue("/my_vhost"))
+            .queue(Property.ofValue(queue))
+            .consumerTag(Property.ofValue("KestraTriggerKillMidBatchTest-redelivery-" + IdUtils.create()))
+            .serdeType(Property.ofValue(SerdeType.STRING))
+            .maxRecords(Property.ofValue(1))
+            .maxDuration(Property.ofValue(Duration.ofSeconds(10)))
+            .build();
+
+        var output = consume.run(runContextFactory.of());
+
+        assertThat(output.getCount(), equalTo(1));
     }
 
     private Trigger triggerOnEmptyQueue(String id, String consumerTag, String queue) {

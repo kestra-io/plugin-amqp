@@ -17,6 +17,7 @@ import java.util.function.Supplier;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.ShutdownSignalException;
 
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Metric;
@@ -44,7 +45,7 @@ import io.kestra.core.models.annotations.PluginProperty;
 @NoArgsConstructor
 @Schema(
     title = "Consume AMQP messages until a stop condition",
-    description = "Consumes from a queue with manual ACK/NACK, writing messages to internal storage and returning their URI; requires `maxDuration` or `maxRecords` to stop. Defaults to consumer tag `Kestra` and serde type `STRING`."
+    description = "Consumes from a queue, writing messages to internal storage and returning their URI; requires `maxDuration` or `maxRecords` to stop. Messages are ACKed in a single batch once the output is durably stored, and NACKed individually on processing failure. Defaults to consumer tag `Kestra` and serde type `STRING`."
 )
 @Plugin(
     examples = {
@@ -92,8 +93,11 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
     @Schema(
         title = "Automatic acknowledgment",
         description = """
-            When true, the broker acknowledges messages as soon as they are delivered.
-            When false, the task ACKs after processing and NACKs on failure.
+            When true, the broker acknowledges messages as soon as they are delivered; they are not
+            requeued if the task is killed mid-batch.
+            When false, the task sends a single bulk acknowledgment for the whole batch once it is
+            durably stored, and NACKs a message on processing failure; if killed before that point,
+            the broker requeues every unacknowledged message.
             """
     )
     @PluginProperty(group = "destination")
@@ -185,8 +189,17 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
 
             outputFile.flush();
 
+            var uri = runContext.storage().putFile(tempFile);
+
+            // Ack only after the batch is durably stored, and only if it wasn't cancelled: a kill
+            // landing before this point leaves messages unacked so the broker requeues them once the
+            // channel/connection is torn down, instead of losing an already-acked batch.
+            if (!this.cancelled.get()) {
+                thread.ackAll();
+            }
+
             return Output.builder()
-                .uri(runContext.storage().putFile(tempFile))
+                .uri(uri)
                 .count(total.get())
                 .build();
         }
@@ -208,6 +221,11 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
     }
 
     public static class ConsumeThread extends Thread implements AutoCloseable {
+        // amqp-client 5.x's Connection.abort(int) still performs a synchronous, bounded close handshake
+        // internally (a blocking getReply(timeoutMs)) before forcibly tearing down the socket, so it must
+        // never be called with -1 (infinite) from a thread that cannot block, hence the bound below.
+        private static final int CONNECTION_ABORT_TIMEOUT_MS = 5000;
+
         private final AtomicReference<Long> lastDeliveryTag = new AtomicReference<>();
         private final AtomicReference<Exception> exception = new AtomicReference<>();
         private final Supplier<Boolean> endSupplier;
@@ -246,24 +264,44 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
         }
 
         /**
-         * Forcibly and immediately tears down the client, unblocking a hung {@code basicConsume}/{@code Await}.
-         * Uses {@code abort()} rather than {@code close()}: it is non-blocking and never throws, unlike the
-         * graceful close used on the happy path.
+         * Forcibly tears down the connection (which tears down its channels), unblocking a hung
+         * {@code basicConsume}/{@code Await} and releasing any unacked messages back to the broker.
+         * Delegates to a short-lived daemon thread: {@link Connection#abort(int)} still runs a bounded
+         * but synchronous close handshake internally, and the caller here is the worker's kill/stop
+         * thread, which must never block.
          */
         void abort() {
-            var ch = this.channel;
-            if (ch != null) {
-                try {
-                    ch.abort();
-                } catch (IOException e) {
-                    // abort() is not expected to throw, guarded defensively
-                    runContext.logger().debug("Error while aborting channel", e);
-                }
+            var conn = this.connection;
+            if (conn == null) {
+                return;
             }
 
-            var conn = this.connection;
-            if (conn != null) {
-                conn.abort();
+            var aborter = new Thread(() -> conn.abort(CONNECTION_ABORT_TIMEOUT_MS), "amqp-consume-abort");
+            aborter.setDaemon(true);
+            aborter.start();
+        }
+
+        /**
+         * Sends a single bulk ACK for every message consumed so far. Called from {@link Consume#run} after
+         * the output file has been flushed and uploaded, while the channel is still open (before the
+         * try-with-resources block closes it): deferring the ack until the batch is durably stored means a
+         * kill or failure before this point leaves messages unacked, so the broker requeues them instead of
+         * losing an already-acked batch.
+         */
+        void ackAll() {
+            var tag = this.lastDeliveryTag.get();
+            if (this.autoAck || tag == null) {
+                return;
+            }
+
+            try {
+                if (this.channel != null && this.channel.isOpen()) {
+                    this.channel.basicAck(tag, true);
+                }
+            } catch (IOException | ShutdownSignalException e) {
+                // the channel/connection may have been concurrently aborted (e.g. a kill landing right
+                // after the cancelled check above): the messages will simply be requeued once it closes
+                runContext.logger().warn("Failed to ACK the consumed batch, unacked messages will be requeued", e);
             }
         }
 
@@ -299,18 +337,15 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
                                 )
                             );
 
-                            if (!autoAck) {
-                                channel.basicAck(deliveryTag, false);
-                            }
                             lastDeliveryTag.set(deliveryTag);
 
                             if (autoAck) {
                                 runContext.logger().debug("Received message {} with auto-ack", deliveryTag);
                             } else {
-                                runContext.logger().debug("Received and ACKed message {}", deliveryTag);
+                                runContext.logger().debug("Received message {}, ACK deferred until the batch is stored", deliveryTag);
                             }
 
-                            // Check stop condition after ACK
+                            // Check stop condition after processing
                             if (endSupplier.get()) {
                                 runContext.logger().debug("Stop condition reached, cancelling consumer {}", consumerTag);
                                 try {
@@ -372,6 +407,10 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
                     if (!e.getMessage().contains("Unknown consumerTag")) {
                         runContext.logger().warn("Error during consumer cancellation", e);
                     }
+                } catch (ShutdownSignalException e) {
+                    // channel/connection was concurrently aborted (e.g. a kill landing during this same
+                    // cleanup): nothing left to cancel
+                    runContext.logger().debug("Channel already closed while cancelling consumer", e);
                 }
             }
 
@@ -412,7 +451,7 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
     public static class Output implements io.kestra.core.models.tasks.Output {
         @Schema(
             title = "Total messages consumed",
-            description = "Count of messages acknowledged before the stop condition was reached."
+            description = "Count of messages consumed before the stop condition was reached; acknowledged in a single batch once this output is durably stored."
         )
         private final Integer count;
 

@@ -85,8 +85,11 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
     @Schema(
         title = "Automatic acknowledgment",
         description = """
-            When true, the broker acknowledges messages as soon as they are delivered.
-            When false, the trigger ACKs after processing and NACKs on failure.
+            When true, the broker acknowledges messages as soon as they are delivered; they are not
+            requeued if the trigger is killed mid-batch.
+            When false, the trigger sends a single bulk acknowledgment for the whole batch once it is
+            durably stored, and NACKs a message on processing failure; if killed before that point,
+            the broker requeues every unacknowledged message.
             """
     )
     @PluginProperty(group = "advanced")
@@ -150,6 +153,12 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
             run = task.run(runContext);
         } finally {
             currentTask.set(null);
+        }
+
+        // task.run() can return normally with a partial batch if it was killed mid-consume (Await
+        // exits cleanly once cancelled is set): re-check isActive so a killed trigger never publishes.
+        if (!isActive.get()) {
+            return Optional.empty();
         }
 
         if (logger.isDebugEnabled()) {
