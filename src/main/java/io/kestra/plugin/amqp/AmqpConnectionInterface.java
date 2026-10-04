@@ -21,7 +21,7 @@ public interface AmqpConnectionInterface {
 
     @Schema(
         title = "Broker port",
-        description = "TCP port for AMQP connections; defaults to `5672`."
+        description = "TCP port for AMQP connections; defaults to `5672`, or `5671` when `ssl` is `true`."
     )
     @PluginProperty(group = "connection")
     Property<String> getPort();
@@ -46,4 +46,22 @@ public interface AmqpConnectionInterface {
     )
     @PluginProperty(secret = true, group = "connection")
     Property<String> getPassword();
+
+    @Schema(
+        title = "Use TLS (AMQPS)",
+        description = "Connect to the broker over TLS. The broker certificate and hostname are always verified, " +
+            "against the JVM's trusted certificate authorities unless `sslCaCertificate` is set. " +
+            "The port defaults to `5671` when TLS is enabled. Defaults to `false`."
+    )
+    @PluginProperty(group = "connection")
+    Property<Boolean> getSsl();
+
+    @Schema(
+        title = "CA certificate for TLS",
+        description = "PEM-encoded certificate (or chain) of the authority that signed the broker certificate, " +
+            "for brokers using a private or self-signed CA. Only used when `ssl` is `true`; " +
+            "when set, only this CA is trusted. Example: `{{ secret('RABBITMQ_CA_CERT') }}`."
+    )
+    @PluginProperty(group = "connection")
+    Property<String> getSslCaCertificate();
 }

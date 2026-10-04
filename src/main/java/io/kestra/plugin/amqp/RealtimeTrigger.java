@@ -71,8 +71,7 @@ public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerI
     @NotNull
     private Property<String> host;
 
-    @Builder.Default
-    private Property<String> port = Property.ofValue("5672");
+    private Property<String> port;
 
     private Property<String> username;
 
@@ -82,6 +81,11 @@ public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerI
 
     @Builder.Default
     private Property<String> virtualHost = Property.ofValue("/");
+
+    @Builder.Default
+    private Property<Boolean> ssl = Property.ofValue(false);
+
+    private Property<String> sslCaCertificate;
 
     private Property<String> queue;
 
@@ -119,6 +123,8 @@ public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerI
             .username(this.username)
             .password(this.password)
             .virtualHost(this.virtualHost)
+            .ssl(this.ssl)
+            .sslCaCertificate(this.sslCaCertificate)
             .queue(this.queue)
             .consumerTag(this.consumerTag)
             .autoAck(this.autoAck)
