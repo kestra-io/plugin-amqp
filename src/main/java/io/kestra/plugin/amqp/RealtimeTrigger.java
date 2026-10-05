@@ -63,30 +63,7 @@ import io.kestra.core.models.annotations.PluginProperty;
         )
     }
 )
-public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerInterface, TriggerOutput<Message>, ConsumeBaseInterface, AmqpConnectionInterface {
-
-    @Deprecated
-    private Property<String> url;
-
-    @NotNull
-    private Property<String> host;
-
-    @Builder.Default
-    private Property<String> port = Property.ofValue("5672");
-
-    private Property<String> username;
-
-    @PluginProperty(secret = true, group = "connection")
-    @ToString.Exclude
-    private Property<String> password;
-
-    @Builder.Default
-    private Property<String> virtualHost = Property.ofValue("/");
-
-    private Property<String> queue;
-
-    @Builder.Default
-    private Property<String> consumerTag = Property.ofValue("Kestra");
+public class RealtimeTrigger extends AbstractAmqpTrigger implements RealtimeTriggerInterface, TriggerOutput<Message>, ConsumeBaseInterface {
 
     @Builder.Default
     @Schema(
@@ -100,9 +77,6 @@ public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerI
     private Property<Boolean> autoAck = Property.ofValue(false);
 
     @Builder.Default
-    private Property<SerdeType> serdeType = Property.ofValue(SerdeType.STRING);
-
-    @Builder.Default
     @Getter(AccessLevel.NONE)
     private final AtomicBoolean isActive = new AtomicBoolean(true);
 
@@ -112,18 +86,7 @@ public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerI
 
     @Override
     public Publisher<Execution> evaluate(ConditionContext conditionContext, TriggerContext context) throws Exception {
-        Consume task = Consume.builder()
-            .url(this.url)
-            .host(this.host)
-            .port(this.port)
-            .username(this.username)
-            .password(this.password)
-            .virtualHost(this.virtualHost)
-            .queue(this.queue)
-            .consumerTag(this.consumerTag)
-            .autoAck(this.autoAck)
-            .serdeType(this.serdeType)
-            .build();
+        var task = consumeTask();
 
         return Flux.from(publisher(task, conditionContext.getRunContext()))
             .map((record) -> TriggerService.generateRealtimeExecution(this, conditionContext, context, record));
@@ -221,6 +184,12 @@ public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerI
                 isActive.set(false); // proactively stop consuming
             }
         }
+    }
+
+    Consume consumeTask() {
+        return consumeBuilder()
+            .autoAck(this.autoAck)
+            .build();
     }
 
     /**

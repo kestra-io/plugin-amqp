@@ -6,6 +6,8 @@ Publish and consume messages on AMQP brokers (RabbitMQ and compatible) from Kest
 
 Set `host`, `port` (default `5672`), `username`, `password`, and `virtualHost` (default `/`) on each task. Store credentials in [secrets](https://kestra.io/docs/concepts/secret) and set them on each task.
 
+To connect over TLS (AMQPS), set `ssl: true`. The port then defaults to `5671`, and the broker certificate and hostname are always verified against the JVM's trusted certificate authorities. For a broker signed by a private or self-signed CA, set `sslCaCertificate` to the PEM certificate (or chain) of that CA, stored in a secret, for example `sslCaCertificate: "{{ secret('RABBITMQ_CA_CERT') }}"`; only that CA is then trusted. With the deprecated `url`, an `amqps://` scheme enables TLS unless `ssl` is set explicitly.
+
 ## Tasks
 
 `Publish` sends messages to an exchange — set `exchange`, optionally `routingKey`, and pass messages via `from`. Use `serdeType: JSON` to serialize objects as JSON; the default is `STRING`.
