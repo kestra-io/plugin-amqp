@@ -53,33 +53,10 @@ import io.kestra.core.models.annotations.PluginProperty;
         )
     }
 )
-public class Trigger extends AbstractTrigger implements PollingTriggerInterface, TriggerOutput<Consume.Output>, ConsumeInterface, AmqpConnectionInterface {
+public class Trigger extends AbstractAmqpTrigger implements PollingTriggerInterface, TriggerOutput<Consume.Output>, ConsumeInterface {
 
     @Builder.Default
     private final Duration interval = Duration.ofSeconds(60);
-
-    @Deprecated
-    private Property<String> url;
-
-    @NotNull
-    private Property<String> host;
-
-    @Builder.Default
-    private Property<String> port = Property.ofValue("5672");
-
-    private Property<String> username;
-
-    @PluginProperty(secret = true, group = "connection")
-    @ToString.Exclude
-    private Property<String> password;
-
-    @Builder.Default
-    private Property<String> virtualHost = Property.ofValue("/");
-
-    private Property<String> queue;
-
-    @Builder.Default
-    private Property<String> consumerTag = Property.ofValue("Kestra");
 
     @Builder.Default
     @Schema(
@@ -98,9 +75,6 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
     private Property<Integer> maxRecords;
 
     private Property<Duration> maxDuration;
-
-    @Builder.Default
-    private Property<SerdeType> serdeType = Property.ofValue(SerdeType.STRING);
 
     @Builder.Default
     @Getter(AccessLevel.NONE)
@@ -123,20 +97,7 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
         RunContext runContext = conditionContext.getRunContext();
         Logger logger = runContext.logger();
 
-        Consume task = Consume.builder()
-            .url(this.url)
-            .host(this.host)
-            .port(this.port)
-            .username(this.username)
-            .password(this.password)
-            .virtualHost(this.virtualHost)
-            .queue(this.queue)
-            .consumerTag(this.consumerTag)
-            .autoAck(this.autoAck)
-            .maxRecords(this.maxRecords)
-            .maxDuration(this.maxDuration)
-            .serdeType(this.serdeType)
-            .build();
+        var task = consumeTask();
 
         currentTask.set(task);
 
@@ -172,6 +133,14 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
         Execution execution = TriggerService.generateExecution(this, conditionContext, context, run);
 
         return Optional.of(execution);
+    }
+
+    Consume consumeTask() {
+        return consumeBuilder()
+            .autoAck(this.autoAck)
+            .maxRecords(this.maxRecords)
+            .maxDuration(this.maxDuration)
+            .build();
     }
 
     /**

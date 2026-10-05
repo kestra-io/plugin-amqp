@@ -3,9 +3,13 @@ services:
     image: rabbitmq:3-management-alpine
     ports:
       - 5672:5672
+      - 5671:5671
       - 15672:15672
     environment:
       RABBITMQ_DEFAULT_VHOST: /my_vhost
+    volumes:
+      - ./certs:/certs:ro
+      - ./certs/20-tls.conf:/etc/rabbitmq/conf.d/20-tls.conf:ro
 
   # AMQP 1.0 broker for the Amqp1* tasks
   artemis:
