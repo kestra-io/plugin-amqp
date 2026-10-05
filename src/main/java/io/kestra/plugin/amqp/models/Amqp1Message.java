@@ -27,6 +27,8 @@ import lombok.Value;
 @Builder
 public class Amqp1Message implements io.kestra.core.models.tasks.Output {
     private static final int MAX_PRIORITY = 255;
+    // protonj2 reports the AMQP header default, the unsigned int max (0xFFFFFFFF ms), when no TTL was set
+    private static final long UNSET_TIME_TO_LIVE = UnsignedInteger.MAX_VALUE.longValue();
 
     @Schema(title = "Message body", description = "Serialized according to `serdeType` when publishing, deserialized the same way when consuming.")
     Object data;
@@ -103,7 +105,7 @@ public class Amqp1Message implements io.kestra.core.models.tasks.Output {
             .groupId(message.groupId())
             .durable(message.durable())
             .priority(Byte.toUnsignedInt(message.priority()))
-            .timeToLive(timeToLive > 0 ? Duration.ofMillis(timeToLive) : null)
+            .timeToLive(timeToLive > 0 && timeToLive != UNSET_TIME_TO_LIVE ? Duration.ofMillis(timeToLive) : null)
             .creationTime(creationTime > 0 ? Instant.ofEpochMilli(creationTime) : null)
             .build();
     }

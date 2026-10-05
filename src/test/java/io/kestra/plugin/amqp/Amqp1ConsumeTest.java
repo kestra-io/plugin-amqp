@@ -165,6 +165,17 @@ class Amqp1ConsumeTest extends AbstractAmqp1Test {
     }
 
     @Test
+    void shouldLeaveTimeToLiveUnsetWhenNotPublished() throws Exception {
+        var address = randomAddress();
+        this.publish(address, Map.of("data", "value-1"));
+
+        var output = this.consume(this.consumeTask(address).maxRecords(Property.ofValue(1)).build());
+
+        assertThat(output.getCount(), is(1));
+        assertThat(this.read(output.getUri()).getFirst().getTimeToLive(), is(nullValue()));
+    }
+
+    @Test
     void shouldDecodeAmqpValueBodiesSentByOtherClients() throws Exception {
         var address = randomAddress();
         try (
