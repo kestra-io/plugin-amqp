@@ -63,33 +63,7 @@ import io.kestra.core.models.annotations.PluginProperty;
         )
     }
 )
-public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerInterface, TriggerOutput<Message>, ConsumeBaseInterface, AmqpConnectionInterface {
-
-    @Deprecated
-    private Property<String> url;
-
-    @NotNull
-    private Property<String> host;
-
-    private Property<String> port;
-
-    private Property<String> username;
-
-    @PluginProperty(secret = true, group = "connection")
-    @ToString.Exclude
-    private Property<String> password;
-
-    @Builder.Default
-    private Property<String> virtualHost = Property.ofValue("/");
-
-    private Property<Boolean> ssl;
-
-    private Property<String> sslCaCertificate;
-
-    private Property<String> queue;
-
-    @Builder.Default
-    private Property<String> consumerTag = Property.ofValue("Kestra");
+public class RealtimeTrigger extends AbstractAmqpTrigger implements RealtimeTriggerInterface, TriggerOutput<Message>, ConsumeBaseInterface {
 
     @Builder.Default
     @Schema(
@@ -101,9 +75,6 @@ public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerI
     )
     @PluginProperty(group = "advanced")
     private Property<Boolean> autoAck = Property.ofValue(false);
-
-    @Builder.Default
-    private Property<SerdeType> serdeType = Property.ofValue(SerdeType.STRING);
 
     @Builder.Default
     @Getter(AccessLevel.NONE)
@@ -216,19 +187,8 @@ public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerI
     }
 
     Consume consumeTask() {
-        return Consume.builder()
-            .url(this.url)
-            .host(this.host)
-            .port(this.port)
-            .username(this.username)
-            .password(this.password)
-            .virtualHost(this.virtualHost)
-            .ssl(this.ssl)
-            .sslCaCertificate(this.sslCaCertificate)
-            .queue(this.queue)
-            .consumerTag(this.consumerTag)
+        return consumeBuilder()
             .autoAck(this.autoAck)
-            .serdeType(this.serdeType)
             .build();
     }
 

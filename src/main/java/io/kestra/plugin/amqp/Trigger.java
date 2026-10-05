@@ -53,36 +53,10 @@ import io.kestra.core.models.annotations.PluginProperty;
         )
     }
 )
-public class Trigger extends AbstractTrigger implements PollingTriggerInterface, TriggerOutput<Consume.Output>, ConsumeInterface, AmqpConnectionInterface {
+public class Trigger extends AbstractAmqpTrigger implements PollingTriggerInterface, TriggerOutput<Consume.Output>, ConsumeInterface {
 
     @Builder.Default
     private final Duration interval = Duration.ofSeconds(60);
-
-    @Deprecated
-    private Property<String> url;
-
-    @NotNull
-    private Property<String> host;
-
-    private Property<String> port;
-
-    private Property<String> username;
-
-    @PluginProperty(secret = true, group = "connection")
-    @ToString.Exclude
-    private Property<String> password;
-
-    @Builder.Default
-    private Property<String> virtualHost = Property.ofValue("/");
-
-    private Property<Boolean> ssl;
-
-    private Property<String> sslCaCertificate;
-
-    private Property<String> queue;
-
-    @Builder.Default
-    private Property<String> consumerTag = Property.ofValue("Kestra");
 
     @Builder.Default
     @Schema(
@@ -101,9 +75,6 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
     private Property<Integer> maxRecords;
 
     private Property<Duration> maxDuration;
-
-    @Builder.Default
-    private Property<SerdeType> serdeType = Property.ofValue(SerdeType.STRING);
 
     @Builder.Default
     @Getter(AccessLevel.NONE)
@@ -165,21 +136,10 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
     }
 
     Consume consumeTask() {
-        return Consume.builder()
-            .url(this.url)
-            .host(this.host)
-            .port(this.port)
-            .username(this.username)
-            .password(this.password)
-            .virtualHost(this.virtualHost)
-            .ssl(this.ssl)
-            .sslCaCertificate(this.sslCaCertificate)
-            .queue(this.queue)
-            .consumerTag(this.consumerTag)
+        return consumeBuilder()
             .autoAck(this.autoAck)
             .maxRecords(this.maxRecords)
             .maxDuration(this.maxDuration)
-            .serdeType(this.serdeType)
             .build();
     }
 
