@@ -30,18 +30,28 @@ EOF
 
 docker compose -f docker-compose-ci.yml up -d
 
-# Wait until RabbitMQ itself reports both listeners (a published port accepts TCP before the broker is up).
-for port in 5672 5671; do
+# Wait until the broker answers on both ports. Docker accepts TCP on a published port before
+# RabbitMQ is up, so check for a real AMQP reply (5672) and a verified TLS handshake (5671).
+amqp_ready() {
+  # Send the AMQP 0-9-1 protocol header; a running broker answers with Connection.Start.
+  timeout 3 bash -c 'exec 3<>/dev/tcp/127.0.0.1/5672 && printf "AMQP\000\000\011\001" >&3 && [ -n "$(head -c 1 <&3 | od -An -tx1)" ]' 2>/dev/null
+}
+amqps_ready() {
+  local out
+  out=$(timeout 5 openssl s_client -connect 127.0.0.1:5671 -servername localhost -CAfile certs/ca.crt </dev/null 2>/dev/null) || true
+  [[ "$out" == *"Verify return code: 0 (ok)"* ]]
+}
+for check in amqp_ready amqps_ready; do
   ready=false
   for _ in $(seq 1 90); do
-    if docker compose -f docker-compose-ci.yml exec -T rabbitmq rabbitmq-diagnostics -q check_port_listener "$port" >/dev/null 2>&1; then
+    if "$check"; then
       ready=true
       break
     fi
     sleep 1
   done
   if [ "$ready" != true ]; then
-    echo "RabbitMQ is not listening on $port" >&2
+    echo "RabbitMQ did not become ready ($check)" >&2
     docker compose -f docker-compose-ci.yml logs --tail 50 rabbitmq >&2
     exit 1
   fi
