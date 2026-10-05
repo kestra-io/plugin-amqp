@@ -44,10 +44,23 @@ public interface Amqp1ConnectionInterface {
 
     @Schema(
         title = "Use TLS (AMQPS)",
-        description = "Encrypts the connection with TLS, verifying the broker certificate against the JVM trust store; required by Azure Service Bus. Defaults to `false`."
+        description = """
+            Encrypts the connection with TLS. The broker certificate and hostname are always verified, \
+            against the JVM's trusted certificate authorities unless `sslCaCertificate` is set. \
+            Required by Azure Service Bus. Defaults to `false`."""
     )
     @PluginProperty(group = "connection")
     Property<Boolean> getSsl();
+
+    @Schema(
+        title = "CA certificate for TLS",
+        description = """
+            PEM-encoded certificate (or chain) of the authority that signed the broker certificate, \
+            for brokers using a private or self-signed CA. Only used when `ssl` is `true`; \
+            when set, only this CA is trusted. Example: `{{ secret('AMQP_CA_CERT') }}`."""
+    )
+    @PluginProperty(group = "connection")
+    Property<String> getSslCaCertificate();
 
     @Schema(
         title = "Connection timeout",

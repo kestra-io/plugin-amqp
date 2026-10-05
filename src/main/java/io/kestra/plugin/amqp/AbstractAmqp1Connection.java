@@ -1,5 +1,7 @@
 package io.kestra.plugin.amqp;
 
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.time.Duration;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -40,6 +42,8 @@ public abstract class AbstractAmqp1Connection extends Task implements Amqp1Conne
     @Builder.Default
     private Property<Boolean> ssl = Property.ofValue(false);
 
+    private Property<String> sslCaCertificate;
+
     @Builder.Default
     private Property<Duration> connectionTimeout = Property.ofValue(DEFAULT_CONNECTION_TIMEOUT);
 
@@ -75,15 +79,27 @@ public abstract class AbstractAmqp1Connection extends Task implements Amqp1Conne
 
     ConnectionOptions connectionOptions(RunContext runContext) throws IllegalVariableEvaluationException {
         var rTimeout = runContext.render(this.connectionTimeout).as(Duration.class).orElse(DEFAULT_CONNECTION_TIMEOUT).toMillis();
+        var rSsl = runContext.render(this.ssl).as(Boolean.class).orElse(false);
 
         var options = new ConnectionOptions()
-            .sslEnabled(runContext.render(this.ssl).as(Boolean.class).orElse(false))
+            .sslEnabled(rSsl)
             .openTimeout(rTimeout)
             .closeTimeout(rTimeout)
             .sendTimeout(rTimeout)
             .requestTimeout(rTimeout);
         runContext.render(this.username).as(String.class).ifPresent(options::user);
         runContext.render(this.password).as(String.class).ifPresent(options::password);
+
+        if (rSsl && this.sslCaCertificate != null) {
+            // Fail closed when the property is set but renders empty (AmqpTls.createSslContext).
+            var rCaCertificate = runContext.render(this.sslCaCertificate).as(String.class).orElse("");
+            try {
+                // verifyHost stays at its default (true): hostname verification remains on.
+                options.sslOptions().sslContextOverride(AmqpTls.createSslContext(rCaCertificate));
+            } catch (IOException | GeneralSecurityException e) {
+                throw new IllegalStateException("Unable to configure TLS with `sslCaCertificate`: " + e.getMessage(), e);
+            }
+        }
 
         return options;
     }

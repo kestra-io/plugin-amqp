@@ -73,6 +73,8 @@ public class Amqp1Trigger extends AbstractTrigger implements PollingTriggerInter
     @Builder.Default
     private Property<Boolean> ssl = Property.ofValue(false);
 
+    private Property<String> sslCaCertificate;
+
     @Builder.Default
     private Property<Duration> connectionTimeout = Property.ofValue(DEFAULT_CONNECTION_TIMEOUT);
 
@@ -110,22 +112,7 @@ public class Amqp1Trigger extends AbstractTrigger implements PollingTriggerInter
         }
 
         var runContext = conditionContext.getRunContext();
-        var task = Amqp1Consume.builder()
-            .id(this.id)
-            .type(Amqp1Consume.class.getName())
-            .host(this.host)
-            .port(this.port)
-            .username(this.username)
-            .password(this.password)
-            .ssl(this.ssl)
-            .connectionTimeout(this.connectionTimeout)
-            .address(this.address)
-            .serdeType(this.serdeType)
-            .autoAck(this.autoAck)
-            .maxRecords(this.maxRecords)
-            .maxDuration(this.maxDuration)
-            .pollDuration(this.pollDuration)
-            .build();
+        var task = this.consumeTask();
 
         this.currentTask.set(task);
 
@@ -153,6 +140,27 @@ public class Amqp1Trigger extends AbstractTrigger implements PollingTriggerInter
         }
 
         return Optional.of(TriggerService.generateExecution(this, conditionContext, context, run));
+    }
+
+    /** Consume builder pre-filled with this trigger's connection and consumer settings. */
+    Amqp1Consume consumeTask() {
+        return Amqp1Consume.builder()
+            .id(this.id)
+            .type(Amqp1Consume.class.getName())
+            .host(this.host)
+            .port(this.port)
+            .username(this.username)
+            .password(this.password)
+            .ssl(this.ssl)
+            .sslCaCertificate(this.sslCaCertificate)
+            .connectionTimeout(this.connectionTimeout)
+            .address(this.address)
+            .serdeType(this.serdeType)
+            .autoAck(this.autoAck)
+            .maxRecords(this.maxRecords)
+            .maxDuration(this.maxDuration)
+            .pollDuration(this.pollDuration)
+            .build();
     }
 
     /**
