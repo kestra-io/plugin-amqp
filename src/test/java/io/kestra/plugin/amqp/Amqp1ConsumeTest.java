@@ -78,6 +78,22 @@ class Amqp1ConsumeTest extends AbstractAmqp1Test {
     }
 
     @Test
+    void shouldReceiveWaitingMessagesWithTinyPollDuration() throws Exception {
+        var address = randomAddress();
+        this.publish(address, Map.of("data", "value-1"));
+
+        // opening the connection and receiver alone takes longer than the poll duration
+        var output = this.consume(
+            this.consumeTask(address)
+                .pollDuration(Property.ofValue(Duration.ofMillis(2)))
+                .build()
+        );
+
+        assertThat(output.getCount(), is(1));
+        assertThat(this.read(output.getUri()).getFirst().getData(), is("value-1"));
+    }
+
+    @Test
     void shouldRespectSubSecondMaxDuration() throws Exception {
         var startedAt = Instant.now();
         var output = this.consume(

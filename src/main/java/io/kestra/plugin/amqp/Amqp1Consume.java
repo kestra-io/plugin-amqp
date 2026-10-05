@@ -159,7 +159,8 @@ public class Amqp1Consume extends AbstractAmqp1Connection implements RunnableTas
         ) {
             try {
                 var granted = this.grantCredit(receiver, 0, rMaxRecords, MAX_OUTSTANDING_CREDIT);
-                var lastReceived = started;
+                // the idle clock starts once the receiver is ready, so connecting never eats into pollDuration
+                var lastReceived = Instant.now();
 
                 while (!this.ended(count, started, lastReceived, rMaxRecords, rMaxDuration, rPollDuration)) {
                     var delivery = receiver.receive(RECEIVE_INTERVAL.toMillis(), TimeUnit.MILLISECONDS);
