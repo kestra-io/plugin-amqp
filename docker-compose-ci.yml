@@ -10,3 +10,19 @@ services:
     volumes:
       - ./certs:/certs:ro
       - ./certs/20-tls.conf:/etc/rabbitmq/conf.d/20-tls.conf:ro
+
+  # AMQP 1.0 broker for the Amqp1* tasks
+  artemis:
+    image: apache/activemq-artemis:2.44.0-alpine
+    ports:
+      - 5673:5672
+    environment:
+      ARTEMIS_USER: artemis
+      ARTEMIS_PASSWORD: artemis
+      # auto-create addresses as anycast queues, like the pre-created queues of Azure Service Bus
+      EXTRA_ARGS: "--java-options -Dbrokerconfig.addressSettings.#.defaultAddressRoutingType=ANYCAST"
+    healthcheck:
+      test: nc -z localhost 5672
+      interval: 2s
+      timeout: 2s
+      retries: 30

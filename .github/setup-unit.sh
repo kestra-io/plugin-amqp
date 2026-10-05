@@ -18,16 +18,16 @@ fi
 chmod 644 certs/ca.crt certs/server.crt certs/server.key
 cp certs/ca.crt src/test/resources/tls/ca.crt
 
-cat > certs/20-tls.conf <<'EOF'
+cat > certs/20-tls.conf <<'TLSEOF'
 listeners.ssl.default = 5671
 ssl_options.cacertfile = /certs/ca.crt
 ssl_options.certfile = /certs/server.crt
 ssl_options.keyfile = /certs/server.key
 ssl_options.verify = verify_none
 ssl_options.fail_if_no_peer_cert = false
-EOF
+TLSEOF
 
-docker compose -f docker-compose-ci.yml up -d
+docker compose -f docker-compose-ci.yml up -d --wait
 
 # Docker accepts TCP on a published port before RabbitMQ is up, so wait for real AMQP and TLS replies.
 amqp_ready() {
@@ -53,4 +53,4 @@ for check in amqp_ready amqps_ready; do
     exit 1
   fi
 done
-echo "RabbitMQ started on 5672 (plain) and 5671 (TLS)"
+echo "RabbitMQ started on 5672 (plain) and 5671 (TLS); Artemis AMQP 1.0 on 5673"
