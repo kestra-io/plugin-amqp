@@ -1,4 +1,5 @@
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
 # Throwaway CA and broker certificate for the TLS (AMQPS) tests.
 mkdir -p certs src/test/resources/tls
@@ -29,10 +30,20 @@ EOF
 
 docker compose -f docker-compose-ci.yml up -d
 
+# Wait until RabbitMQ itself reports both listeners (a published port accepts TCP before the broker is up).
 for port in 5672 5671; do
-  for i in $(seq 1 60); do
-    nc -z 127.0.0.1 "$port" && break
+  ready=false
+  for _ in $(seq 1 90); do
+    if docker compose -f docker-compose-ci.yml exec -T rabbitmq rabbitmq-diagnostics -q check_port_listener "$port" >/dev/null 2>&1; then
+      ready=true
+      break
+    fi
     sleep 1
   done
+  if [ "$ready" != true ]; then
+    echo "RabbitMQ is not listening on $port" >&2
+    docker compose -f docker-compose-ci.yml logs --tail 50 rabbitmq >&2
+    exit 1
+  fi
 done
 echo "RabbitMQ started on 5672 (plain) and 5671 (TLS)"

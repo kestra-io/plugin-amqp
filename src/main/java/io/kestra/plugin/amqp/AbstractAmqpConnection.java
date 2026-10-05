@@ -39,8 +39,7 @@ public abstract class AbstractAmqpConnection extends Task implements AmqpConnect
     @Builder.Default
     private Property<String> virtualHost = Property.ofValue("/");
 
-    @Builder.Default
-    private Property<Boolean> ssl = Property.ofValue(false);
+    private Property<Boolean> ssl;
 
     private Property<String> sslCaCertificate;
 
@@ -63,7 +62,8 @@ public abstract class AbstractAmqpConnection extends Task implements AmqpConnect
         factory.setPort(runContext.render(port).as(String.class).map(Integer::parseInt).orElse(defaultPort));
 
         if (rSsl) {
-            AmqpTls.configure(factory, runContext.render(sslCaCertificate).as(String.class).orElse(null));
+            String rCaCertificate = sslCaCertificate == null ? null : runContext.render(sslCaCertificate).as(String.class).orElse("");
+            AmqpTls.configure(factory, rCaCertificate);
         }
 
         factory.setExceptionHandler(new AmqpExceptionHandler(runContext.logger()));
@@ -74,7 +74,8 @@ public abstract class AbstractAmqpConnection extends Task implements AmqpConnect
     void parseFromUrl(RunContext runContext, String url) throws IllegalVariableEvaluationException, URISyntaxException {
         URI amqpUri = new URI(runContext.render(url));
 
-        if ("amqps".equalsIgnoreCase(amqpUri.getScheme())) {
+        // An explicit `ssl` setting wins over the URL scheme.
+        if (ssl == null && "amqps".equalsIgnoreCase(amqpUri.getScheme())) {
             ssl = Property.ofValue(true);
         }
 

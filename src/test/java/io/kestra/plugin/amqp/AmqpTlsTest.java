@@ -10,6 +10,7 @@ import com.rabbitmq.client.ConnectionFactory;
 import io.kestra.core.junit.annotations.KestraTest;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.runners.RunContextFactory;
+
 import jakarta.inject.Inject;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -126,5 +127,33 @@ class AmqpTlsTest {
         assertThat(factory.isSSL(), is(true));
         assertThat(factory.getPort(), is(ConnectionFactory.DEFAULT_AMQP_OVER_SSL_PORT));
         assertThat(factory.getVirtualHost(), is("/my_vhost"));
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    void shouldLetExplicitSslFalseWinOverAmqpsUrl() throws Exception {
+        var task = DeclareExchange.builder()
+            .url(Property.ofValue("amqps://guest:guest@localhost/my_vhost"))
+            .ssl(Property.ofValue(false))
+            .name(Property.ofValue("tls.unit"))
+            .build();
+
+        ConnectionFactory factory = task.connectionFactory(runContextFactory.of());
+
+        assertThat(factory.isSSL(), is(false));
+        assertThat(factory.getPort(), is(ConnectionFactory.DEFAULT_AMQP_PORT));
+    }
+
+    @Test
+    void shouldRejectCaCertificateThatRendersEmpty() {
+        var task = DeclareExchange.builder()
+            .host(Property.ofValue("localhost"))
+            .ssl(Property.ofValue(true))
+            .sslCaCertificate(Property.ofValue("   "))
+            .name(Property.ofValue("tls.unit"))
+            .build();
+
+        var error = assertThrows(IllegalArgumentException.class, () -> task.connectionFactory(runContextFactory.of()));
+        assertThat(error.getMessage(), containsString("empty"));
     }
 }

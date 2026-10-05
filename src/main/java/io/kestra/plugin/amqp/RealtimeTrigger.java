@@ -82,8 +82,7 @@ public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerI
     @Builder.Default
     private Property<String> virtualHost = Property.ofValue("/");
 
-    @Builder.Default
-    private Property<Boolean> ssl = Property.ofValue(false);
+    private Property<Boolean> ssl;
 
     private Property<String> sslCaCertificate;
 

@@ -20,13 +20,19 @@ final class AmqpTls {
     }
 
     /**
-     * Enables TLS on the factory. Without a CA certificate the JVM's default trust store is used;
-     * with one, only brokers whose certificate chains to that CA are trusted.
+     * Enables TLS on the factory.
+     *
+     * @param caCertificatePem {@code null} to trust the JVM's default certificate authorities; otherwise the PEM
+     *        certificate (or chain) of the only authority to trust
      */
     static void configure(ConnectionFactory factory, String caCertificatePem) throws GeneralSecurityException, IOException {
-        if (caCertificatePem == null || caCertificatePem.isBlank()) {
+        if (caCertificatePem == null) {
             factory.useSslProtocol();
             return;
+        }
+        if (caCertificatePem.isBlank()) {
+            // Usually a secret or expression that rendered to nothing; failing beats silently trusting the JVM defaults.
+            throw new IllegalArgumentException("`sslCaCertificate` is set but empty; check the secret or expression it uses");
         }
 
         List<X509Certificate> certificates = PemReader.readCertificateChain(caCertificatePem);
@@ -43,6 +49,7 @@ final class AmqpTls {
         TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
         trustManagerFactory.init(trustStore);
 
+        // Same protocol choice as ConnectionFactory#useSslProtocol().
         SSLContext sslContext = SSLContext.getInstance(
             ConnectionFactory.computeDefaultTlsProtocol(SSLContext.getDefault().getSupportedSSLParameters().getProtocols())
         );
