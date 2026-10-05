@@ -1,7 +1,7 @@
 group: io.kestra.plugin.amqp
 name: "amqp"
 title: "AMQP"
-description: "Tasks that connect to RabbitMQ brokers to declare exchanges and queues, bind routing keys, publish messages, and consume them via tasks or triggers (batch or real time)."
+description: "Tasks that connect to RabbitMQ brokers to declare exchanges and queues, bind routing keys, publish messages, and consume them via tasks or triggers (batch or real time), plus AMQP 1.0 tasks for brokers such as Azure Service Bus and ActiveMQ Artemis."
 body: "Provide host/port/credentials/virtual host values for each connection, and set stop conditions such as maxDuration or maxRecords when consuming."
 videos: []
 createdBy: "Kestra Core Team"
