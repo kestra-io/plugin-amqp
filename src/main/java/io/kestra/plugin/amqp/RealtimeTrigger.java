@@ -115,7 +115,7 @@ public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerI
 
     @Override
     public Publisher<Execution> evaluate(ConditionContext conditionContext, TriggerContext context) throws Exception {
-        Consume task = consumeTask();
+        var task = consumeTask();
 
         return Flux.from(publisher(task, conditionContext.getRunContext()))
             .map((record) -> TriggerService.generateRealtimeExecution(this, conditionContext, context, record));

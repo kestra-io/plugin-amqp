@@ -126,7 +126,7 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
         RunContext runContext = conditionContext.getRunContext();
         Logger logger = runContext.logger();
 
-        Consume task = consumeTask();
+        var task = consumeTask();
 
         currentTask.set(task);
 

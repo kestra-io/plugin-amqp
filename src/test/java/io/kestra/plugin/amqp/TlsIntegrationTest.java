@@ -21,6 +21,7 @@ import jakarta.inject.Inject;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -35,7 +36,11 @@ class TlsIntegrationTest {
     @BeforeAll
     void loadCa() throws Exception {
         try (var in = TlsIntegrationTest.class.getResourceAsStream("/tls/ca.crt")) {
-            assumeTrue(in != null, "Run .github/setup-unit.sh first to start the TLS broker");
+            if (System.getenv("CI") != null) {
+                assertNotNull(in, ".github/setup-unit.sh did not generate tls/ca.crt");
+            } else {
+                assumeTrue(in != null, "Run .github/setup-unit.sh first to start the TLS broker");
+            }
             ca = new String(in.readAllBytes(), StandardCharsets.UTF_8);
         }
     }
