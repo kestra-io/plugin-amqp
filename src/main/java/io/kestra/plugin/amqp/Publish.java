@@ -63,6 +63,27 @@ import io.kestra.core.models.annotations.PluginProperty;
                         timestamp: '2023-01-09T08:46:33.115456977Z'
                         appId: unit-kestra
                 """
+        ),
+        @Example(
+            title = "Publish over TLS (AMQPS) to a broker signed by a private CA",
+            full = true,
+            code = """
+                id: amqps_publish
+                namespace: company.team
+
+                tasks:
+                  - id: publish
+                    type: io.kestra.plugin.amqp.Publish
+                    host: rabbitmq.example.com
+                    ssl: true
+                    sslCaCertificate: "{{ secret('RABBITMQ_CA_CERT') }}"
+                    username: kestra
+                    password: "{{ secret('AMQP_PASSWORD') }}"
+                    virtualHost: /my_vhost
+                    exchange: kestramqp.exchange
+                    from:
+                      - data: hello over TLS
+                """
         )
     },
     metrics = {

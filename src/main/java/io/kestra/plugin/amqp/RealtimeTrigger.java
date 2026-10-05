@@ -115,20 +115,7 @@ public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerI
 
     @Override
     public Publisher<Execution> evaluate(ConditionContext conditionContext, TriggerContext context) throws Exception {
-        Consume task = Consume.builder()
-            .url(this.url)
-            .host(this.host)
-            .port(this.port)
-            .username(this.username)
-            .password(this.password)
-            .virtualHost(this.virtualHost)
-            .ssl(this.ssl)
-            .sslCaCertificate(this.sslCaCertificate)
-            .queue(this.queue)
-            .consumerTag(this.consumerTag)
-            .autoAck(this.autoAck)
-            .serdeType(this.serdeType)
-            .build();
+        Consume task = consumeTask();
 
         return Flux.from(publisher(task, conditionContext.getRunContext()))
             .map((record) -> TriggerService.generateRealtimeExecution(this, conditionContext, context, record));
@@ -226,6 +213,23 @@ public class RealtimeTrigger extends AbstractTrigger implements RealtimeTriggerI
                 isActive.set(false); // proactively stop consuming
             }
         }
+    }
+
+    Consume consumeTask() {
+        return Consume.builder()
+            .url(this.url)
+            .host(this.host)
+            .port(this.port)
+            .username(this.username)
+            .password(this.password)
+            .virtualHost(this.virtualHost)
+            .ssl(this.ssl)
+            .sslCaCertificate(this.sslCaCertificate)
+            .queue(this.queue)
+            .consumerTag(this.consumerTag)
+            .autoAck(this.autoAck)
+            .serdeType(this.serdeType)
+            .build();
     }
 
     /**

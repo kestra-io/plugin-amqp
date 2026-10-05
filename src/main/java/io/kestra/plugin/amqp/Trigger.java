@@ -126,22 +126,7 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
         RunContext runContext = conditionContext.getRunContext();
         Logger logger = runContext.logger();
 
-        Consume task = Consume.builder()
-            .url(this.url)
-            .host(this.host)
-            .port(this.port)
-            .username(this.username)
-            .password(this.password)
-            .virtualHost(this.virtualHost)
-            .ssl(this.ssl)
-            .sslCaCertificate(this.sslCaCertificate)
-            .queue(this.queue)
-            .consumerTag(this.consumerTag)
-            .autoAck(this.autoAck)
-            .maxRecords(this.maxRecords)
-            .maxDuration(this.maxDuration)
-            .serdeType(this.serdeType)
-            .build();
+        Consume task = consumeTask();
 
         currentTask.set(task);
 
@@ -177,6 +162,25 @@ public class Trigger extends AbstractTrigger implements PollingTriggerInterface,
         Execution execution = TriggerService.generateExecution(this, conditionContext, context, run);
 
         return Optional.of(execution);
+    }
+
+    Consume consumeTask() {
+        return Consume.builder()
+            .url(this.url)
+            .host(this.host)
+            .port(this.port)
+            .username(this.username)
+            .password(this.password)
+            .virtualHost(this.virtualHost)
+            .ssl(this.ssl)
+            .sslCaCertificate(this.sslCaCertificate)
+            .queue(this.queue)
+            .consumerTag(this.consumerTag)
+            .autoAck(this.autoAck)
+            .maxRecords(this.maxRecords)
+            .maxDuration(this.maxDuration)
+            .serdeType(this.serdeType)
+            .build();
     }
 
     /**

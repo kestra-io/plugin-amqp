@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Throwaway CA and broker certificate for the TLS (AMQPS) tests.
 mkdir -p certs src/test/resources/tls
 
 if [ ! -f certs/ca.crt ]; then
@@ -30,10 +29,8 @@ EOF
 
 docker compose -f docker-compose-ci.yml up -d
 
-# Wait until the broker answers on both ports. Docker accepts TCP on a published port before
-# RabbitMQ is up, so check for a real AMQP reply (5672) and a verified TLS handshake (5671).
+# Docker accepts TCP on a published port before RabbitMQ is up, so wait for real AMQP and TLS replies.
 amqp_ready() {
-  # Send the AMQP 0-9-1 protocol header; a running broker answers with Connection.Start.
   timeout 3 bash -c 'exec 3<>/dev/tcp/127.0.0.1/5672 && printf "AMQP\000\000\011\001" >&3 && [ -n "$(head -c 1 <&3 | od -An -tx1)" ]' 2>/dev/null
 }
 amqps_ready() {

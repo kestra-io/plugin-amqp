@@ -47,8 +47,9 @@ public abstract class AbstractAmqpConnection extends Task implements AmqpConnect
         if (url != null && host != null) {
             throw new IllegalArgumentException("Cannot define both `url` and `host`");
         }
+        var amqpsUrl = false;
         if (url != null) {
-            parseFromUrl(runContext, runContext.render(url).as(String.class).orElseThrow());
+            amqpsUrl = parseFromUrl(runContext, runContext.render(url).as(String.class).orElseThrow());
         }
 
         ConnectionFactory factory = new ConnectionFactory();
@@ -57,12 +58,12 @@ public abstract class AbstractAmqpConnection extends Task implements AmqpConnect
         runContext.render(password).as(String.class).ifPresent(factory::setPassword);
         runContext.render(virtualHost).as(String.class).ifPresent(factory::setVirtualHost);
 
-        boolean rSsl = runContext.render(ssl).as(Boolean.class).orElse(false);
-        int defaultPort = rSsl ? ConnectionFactory.DEFAULT_AMQP_OVER_SSL_PORT : ConnectionFactory.DEFAULT_AMQP_PORT;
+        var rSsl = runContext.render(ssl).as(Boolean.class).orElse(amqpsUrl);
+        var defaultPort = rSsl ? ConnectionFactory.DEFAULT_AMQP_OVER_SSL_PORT : ConnectionFactory.DEFAULT_AMQP_PORT;
         factory.setPort(runContext.render(port).as(String.class).map(Integer::parseInt).orElse(defaultPort));
 
         if (rSsl) {
-            String rCaCertificate = sslCaCertificate == null ? null : runContext.render(sslCaCertificate).as(String.class).orElse("");
+            var rCaCertificate = sslCaCertificate == null ? null : runContext.render(sslCaCertificate).as(String.class).orElse("");
             AmqpTls.configure(factory, rCaCertificate);
         }
 
@@ -71,13 +72,8 @@ public abstract class AbstractAmqpConnection extends Task implements AmqpConnect
         return factory;
     }
 
-    void parseFromUrl(RunContext runContext, String url) throws IllegalVariableEvaluationException, URISyntaxException {
+    boolean parseFromUrl(RunContext runContext, String url) throws IllegalVariableEvaluationException, URISyntaxException {
         URI amqpUri = new URI(runContext.render(url));
-
-        // An explicit `ssl` setting wins over the URL scheme.
-        if (ssl == null && "amqps".equalsIgnoreCase(amqpUri.getScheme())) {
-            ssl = Property.ofValue(true);
-        }
 
         host = Property.ofValue(amqpUri.getHost());
         if (amqpUri.getPort() != -1) {
@@ -94,5 +90,7 @@ public abstract class AbstractAmqpConnection extends Task implements AmqpConnect
         if (!amqpUri.getPath().isEmpty()) {
             virtualHost = Property.ofValue(amqpUri.getPath());
         }
+
+        return "amqps".equalsIgnoreCase(amqpUri.getScheme());
     }
 }
