@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.rabbitmq.client.BasicProperties;
+import com.rabbitmq.client.Envelope;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
@@ -54,10 +55,17 @@ public class Message implements io.kestra.core.models.tasks.Output {
     @Schema(title = "Identifier of the publishing application")
     String appId;
 
+    @Schema(title = "The routing key of the message")
+    String routingKey;
+
     @Schema(title = "Deserialized message body")
     Object data;
 
     public static Message of(byte[] message, SerdeType serdeType, BasicProperties properties) throws Exception {
+        return of(message, serdeType, properties, null);
+    }
+
+    public static Message of(byte[] message, SerdeType serdeType, BasicProperties properties, Envelope envelope) throws Exception {
         return Message.builder()
             .data(serdeType.deserialize(message))
             .contentType(properties.getContentType())
@@ -78,6 +86,7 @@ public class Message implements io.kestra.core.models.tasks.Output {
             .type(properties.getType())
             .userId(properties.getUserId())
             .appId(properties.getAppId())
+            .routingKey(envelope != null ? envelope.getRoutingKey() : null)
             .build();
     }
 }

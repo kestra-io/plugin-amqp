@@ -12,6 +12,7 @@ import com.rabbitmq.client.*;
 
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
+import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.conditions.ConditionContext;
 import io.kestra.core.models.executions.Execution;
 import io.kestra.core.models.property.Property;
@@ -21,11 +22,9 @@ import io.kestra.plugin.amqp.models.Message;
 import io.kestra.plugin.amqp.models.SerdeType;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import reactor.core.publisher.Flux;
-import io.kestra.core.models.annotations.PluginProperty;
 
 @SuperBuilder
 @ToString
@@ -127,7 +126,12 @@ public class RealtimeTrigger extends AbstractAmqpTrigger implements RealtimeTrig
                     DeliverCallback deliverCallback = (tag, message) ->
                     {
                         try {
-                            Message output = Message.of(message.getBody(), runContext.render(task.getSerdeType()).as(SerdeType.class).orElseThrow(), message.getProperties());
+                            Message output = Message.of(
+                                message.getBody(),
+                                runContext.render(task.getSerdeType()).as(SerdeType.class).orElseThrow(),
+                                message.getProperties(),
+                                message.getEnvelope()
+                            );
                             emitter.next(output);
                             if (!rAutoAck) {
                                 channel.basicAck(message.getEnvelope().getDeliveryTag(), false);
