@@ -136,11 +136,7 @@ public class Trigger extends AbstractAmqpTrigger implements PollingTriggerInterf
     }
 
     Consume consumeTask() {
-        return consumeBuilder()
-            .autoAck(this.autoAck)
-            .maxRecords(this.maxRecords)
-            .maxDuration(this.maxDuration)
-            .build();
+        return consumeTask(this.autoAck, this.maxRecords, this.maxDuration);
     }
 
     /**

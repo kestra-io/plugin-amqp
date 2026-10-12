@@ -191,9 +191,7 @@ public class RealtimeTrigger extends AbstractAmqpTrigger implements RealtimeTrig
     }
 
     Consume consumeTask() {
-        return consumeBuilder()
-            .autoAck(this.autoAck)
-            .build();
+        return consumeTask(this.autoAck, null, null);
     }
 
     /**

@@ -6,6 +6,7 @@ import io.kestra.plugin.amqp.models.SerdeType;
 
 import jakarta.validation.constraints.NotNull;
 import io.kestra.core.models.annotations.PluginProperty;
+import java.time.Duration;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
@@ -45,8 +46,8 @@ public abstract class AbstractAmqpTrigger extends AbstractTrigger implements Amq
     @Builder.Default
     private Property<SerdeType> serdeType = Property.ofValue(SerdeType.STRING);
 
-    /** Consume builder pre-filled with the connection and consumer settings shared by both triggers. */
-    protected Consume.ConsumeBuilder<?, ?> consumeBuilder() {
+    /** Consume task with the connection and consumer settings shared by both triggers. */
+    protected Consume consumeTask(Property<Boolean> autoAck, Property<Integer> maxRecords, Property<Duration> maxDuration) {
         return Consume.builder()
             .url(url)
             .host(host)
@@ -58,6 +59,10 @@ public abstract class AbstractAmqpTrigger extends AbstractTrigger implements Amq
             .sslCaCertificate(sslCaCertificate)
             .queue(queue)
             .consumerTag(consumerTag)
-            .serdeType(serdeType);
+            .serdeType(serdeType)
+            .autoAck(autoAck)
+            .maxRecords(maxRecords)
+            .maxDuration(maxDuration)
+            .build();
     }
 }
