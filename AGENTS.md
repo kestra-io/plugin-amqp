@@ -17,11 +17,12 @@
 
 Single-module plugin. Source packages under `io.kestra.plugin`:
 
-- `amqp`
+- `amqp` (AMQP 0.9.1 tasks on the RabbitMQ client, `Amqp1*` AMQP 1.0 tasks on the Apache Qpid ProtonJ2 client)
 
 Infrastructure dependencies (Docker Compose services):
 
 - `rabbitmq`
+- `artemis` (AMQP 1.0 broker for the `Amqp1*` tests, port `5673`)
 
 ### Key Plugin Classes
 
@@ -32,6 +33,9 @@ Infrastructure dependencies (Docker Compose services):
 - `io.kestra.plugin.amqp.QueueBind`
 - `io.kestra.plugin.amqp.RealtimeTrigger`
 - `io.kestra.plugin.amqp.Trigger`
+- `io.kestra.plugin.amqp.Amqp1Consume`
+- `io.kestra.plugin.amqp.Amqp1Publish`
+- `io.kestra.plugin.amqp.Amqp1Trigger`
 
 ### Project Structure
 
