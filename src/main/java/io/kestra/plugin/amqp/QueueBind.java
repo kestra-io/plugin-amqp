@@ -2,7 +2,6 @@ package io.kestra.plugin.amqp;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -85,7 +84,7 @@ public class QueueBind extends AbstractAmqpConnection implements RunnableTask<Qu
         String queue = runContext.render(this.queue).as(String.class).orElseThrow();
         String exchange = runContext.render(this.exchange).as(String.class).orElseThrow();
 
-        var argsMap = runContext.render(args).asMap(String.class, Objects.class);
+        var argsMap = runContext.render(args).asMap(String.class, Object.class);
         try (Connection connection = factory.newConnection()) {
             Channel channel = connection.createChannel();
             channel.queueBind(queue, exchange, runContext.render(routingKey).as(String.class).orElse(""), argsMap.isEmpty() ? new HashMap<>() : argsMap);

@@ -3,11 +3,14 @@ package io.kestra.plugin.amqp;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.OutputStream;
+import java.io.UncheckedIOException;
 import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
 import org.junit.jupiter.api.BeforeAll;
@@ -16,7 +19,12 @@ import org.junit.jupiter.api.TestInstance;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.google.common.collect.ImmutableMap;
+import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.BuiltinExchangeType;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.GetResponse;
 
 import io.kestra.core.junit.annotations.KestraTest;
 import io.kestra.core.models.property.Property;
@@ -356,6 +364,92 @@ class AMQPTest {
         assertThat(createQueueOutput.getQueue(), is("amqptests.queue"));
         assertThat(queueBindOutput.getExchange(), is("amqptests.exchange"));
         assertThat(queueBindOutput.getQueue(), is("amqptests.queue"));
+    }
+
+    @Test
+    void declareExchangeWithArgs() throws Exception {
+        DeclareExchange.builder()
+            .url(Property.ofValue("amqp://guest:guest@localhost:5672/my_vhost"))
+            .name(Property.ofValue("amqptests.unrouted"))
+            .exchangeType(Property.ofValue(BuiltinExchangeType.FANOUT))
+            .build()
+            .run(runContextFactory.of());
+        CreateQueue.builder()
+            .url(Property.ofValue("amqp://guest:guest@localhost:5672/my_vhost"))
+            .name(Property.ofValue("amqptests.unrouted"))
+            .build()
+            .run(runContextFactory.of());
+        QueueBind.builder()
+            .url(Property.ofValue("amqp://guest:guest@localhost:5672/my_vhost"))
+            .exchange(Property.ofValue("amqptests.unrouted"))
+            .queue(Property.ofValue("amqptests.unrouted"))
+            .build()
+            .run(runContextFactory.of());
+
+        DeclareExchange declareExchange = JacksonMapper.ofYaml().readValue("""
+            host: localhost
+            port: 5672
+            virtualHost: /my_vhost
+            name: amqptests.alternate
+            args:
+              alternate-exchange: amqptests.unrouted
+            """, DeclareExchange.class);
+        declareExchange.run(runContextFactory.of());
+
+        try (Connection connection = declareExchange.connectionFactory(runContextFactory.of()).newConnection()) {
+            Channel channel = connection.createChannel();
+            channel.queuePurge("amqptests.unrouted");
+            channel.basicPublish("amqptests.alternate", "no.binding", null, "unrouted".getBytes());
+
+            GetResponse response = Await.until(() -> basicGet(channel, "amqptests.unrouted"), Duration.ofMillis(100), Duration.ofSeconds(10));
+            assertThat(new String(response.getBody()), is("unrouted"));
+        }
+    }
+
+    @Test
+    void queueBindWithArgs() throws Exception {
+        DeclareExchange.builder()
+            .url(Property.ofValue("amqp://guest:guest@localhost:5672/my_vhost"))
+            .name(Property.ofValue("amqptests.headers"))
+            .exchangeType(Property.ofValue(BuiltinExchangeType.HEADERS))
+            .build()
+            .run(runContextFactory.of());
+        CreateQueue.builder()
+            .url(Property.ofValue("amqp://guest:guest@localhost:5672/my_vhost"))
+            .name(Property.ofValue("amqptests.headers"))
+            .build()
+            .run(runContextFactory.of());
+
+        QueueBind queueBind = JacksonMapper.ofYaml().readValue("""
+            host: localhost
+            port: 5672
+            virtualHost: /my_vhost
+            exchange: amqptests.headers
+            queue: amqptests.headers
+            args:
+              x-match: all
+              format: pdf
+            """, QueueBind.class);
+        queueBind.run(runContextFactory.of());
+
+        try (Connection connection = queueBind.connectionFactory(runContextFactory.of()).newConnection()) {
+            Channel channel = connection.createChannel();
+            channel.queuePurge("amqptests.headers");
+            channel.basicPublish("amqptests.headers", "", new AMQP.BasicProperties.Builder().headers(Map.of("format", "zip")).build(), "zip".getBytes());
+            channel.basicPublish("amqptests.headers", "", new AMQP.BasicProperties.Builder().headers(Map.of("format", "pdf")).build(), "pdf".getBytes());
+
+            GetResponse response = Await.until(() -> basicGet(channel, "amqptests.headers"), Duration.ofMillis(100), Duration.ofSeconds(10));
+            assertThat(new String(response.getBody()), is("pdf"));
+            assertThat(channel.basicGet("amqptests.headers", true), nullValue());
+        }
+    }
+
+    private static GetResponse basicGet(Channel channel, String queue) {
+        try {
+            return channel.basicGet(queue, true);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @BeforeAll

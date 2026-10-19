@@ -2,7 +2,6 @@ package io.kestra.plugin.amqp;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 import com.rabbitmq.client.*;
 
@@ -99,7 +98,7 @@ public class DeclareExchange extends AbstractAmqpConnection implements RunnableT
         try (Connection connection = factory.newConnection()) {
             Channel channel = connection.createChannel();
 
-            var argsMap = runContext.render(args).asMap(String.class, Objects.class);
+            var argsMap = runContext.render(args).asMap(String.class, Object.class);
             channel.exchangeDeclare(
                 exchange,
                 runContext.render(exchangeType).as(BuiltinExchangeType.class).orElseThrow(),
