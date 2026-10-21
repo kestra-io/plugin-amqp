@@ -2,8 +2,8 @@ package io.kestra.plugin.amqp.models;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import com.rabbitmq.client.BasicProperties;
 import com.rabbitmq.client.Envelope;
@@ -74,7 +74,11 @@ public class Message implements io.kestra.core.models.tasks.Output {
                 properties.getHeaders() != null ? properties.getHeaders()
                     .entrySet()
                     .stream()
-                    .collect(Collectors.toMap(Map.Entry::getKey, String::valueOf)) : null
+                    .collect(
+                        LinkedHashMap::new,
+                        (headers, entry) -> headers.put(entry.getKey(), Amqp1Message.normalize(entry.getValue())),
+                        Map::putAll
+                    ) : null
             )
             .deliveryMode(properties.getDeliveryMode())
             .priority(properties.getPriority())

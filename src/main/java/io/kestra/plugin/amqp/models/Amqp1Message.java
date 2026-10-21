@@ -185,7 +185,7 @@ public class Amqp1Message implements io.kestra.core.models.tasks.Output {
      * Converts AMQP-specific types (symbols, unsigned numbers, timestamps, binaries...) into values the
      * internal storage serializer and Pebble templates understand.
      */
-    private static Object normalize(Object value) {
+    static Object normalize(Object value) {
         return switch (value) {
             case null -> null;
             case String s -> s;
