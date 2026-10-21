@@ -160,6 +160,7 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
                 runContext,
                 this,
                 rAutoAck,
+                rMaxDuration != null ? rMaxDuration : Duration.ofMinutes(1),
                 throwConsumer(message ->
                 {
                     FileSerde.write(outputFile, message);
@@ -235,6 +236,7 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
         private final ConsumeBaseInterface consumeInterface;
         @PluginProperty(group = "destination")
         private final boolean autoAck;
+        private final Duration timeout;
         private final Consumer<Message> consumer;
 
         // Written by this thread inside run(), read from the killing thread via abort(): must be
@@ -247,6 +249,7 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
             RunContext runContext,
             ConsumeBaseInterface consumeInterface,
             boolean autoAck,
+            Duration timeout,
             Consumer<Message> consumer,
             Supplier<Boolean> supplier) {
             super("amqp-consume");
@@ -255,6 +258,7 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
             this.runContext = runContext;
             this.consumeInterface = consumeInterface;
             this.autoAck = autoAck;
+            this.timeout = timeout;
             this.consumer = consumer;
             this.endSupplier = supplier;
         }
@@ -379,7 +383,7 @@ public class Consume extends AbstractAmqpConnection implements RunnableTask<Cons
                         Await.until(
                             () -> exception.get() != null || endSupplier.get(),
                             Duration.ofMillis(100),
-                            Duration.ofMinutes(1)
+                            timeout
                         );
                     }
                 } catch (TimeoutException e) {
