@@ -76,7 +76,7 @@ public class Message implements io.kestra.core.models.tasks.Output {
                     .stream()
                     .collect(
                         LinkedHashMap::new,
-                        (headers, entry) -> headers.put(entry.getKey(), Amqp1Message.normalize(entry.getValue())),
+                        (headers, entry) -> headers.put(entry.getKey(), AmqpValues.normalize(entry.getValue())),
                         Map::putAll
                     ) : null
             )

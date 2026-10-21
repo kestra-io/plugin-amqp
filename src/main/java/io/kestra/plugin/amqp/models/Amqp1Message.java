@@ -4,16 +4,11 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Date;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.qpid.protonj2.client.exceptions.ClientException;
-import org.apache.qpid.protonj2.types.UnsignedByte;
 import org.apache.qpid.protonj2.types.UnsignedInteger;
-import org.apache.qpid.protonj2.types.UnsignedLong;
-import org.apache.qpid.protonj2.types.UnsignedShort;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
@@ -87,9 +82,9 @@ public class Amqp1Message implements io.kestra.core.models.tasks.Output {
         var creationTime = message.creationTime();
 
         var applicationProperties = new LinkedHashMap<String, Object>();
-        message.forEachProperty((key, value) -> applicationProperties.put(key, normalize(value)));
+        message.forEachProperty((key, value) -> applicationProperties.put(key, AmqpValues.normalize(value)));
         var messageAnnotations = new LinkedHashMap<String, Object>();
-        message.forEachAnnotation((key, value) -> messageAnnotations.put(key, normalize(value)));
+        message.forEachAnnotation((key, value) -> messageAnnotations.put(key, AmqpValues.normalize(value)));
 
         return Amqp1Message.builder()
             .data(decodeBody(message.body(), serdeType))
@@ -178,31 +173,6 @@ public class Amqp1Message implements io.kestra.core.models.tasks.Output {
         if (body instanceof String text && serdeType == SerdeType.JSON) {
             return serdeType.deserialize(text.getBytes(StandardCharsets.UTF_8));
         }
-        return normalize(body);
-    }
-
-    /**
-     * Converts AMQP-specific types (symbols, unsigned numbers, timestamps, binaries...) into values the
-     * internal storage serializer and Pebble templates understand.
-     */
-    static Object normalize(Object value) {
-        return switch (value) {
-            case null -> null;
-            case String s -> s;
-            case Boolean b -> b;
-            case UnsignedLong n -> n.bigIntegerValue();
-            case UnsignedByte n -> n.intValue();
-            case UnsignedShort n -> n.intValue();
-            case UnsignedInteger n -> n.longValue();
-            case Number n when n.getClass().getName().startsWith("java.") -> n;
-            case Date d -> d.toInstant();
-            case Map<?, ?> map -> {
-                var normalized = new LinkedHashMap<String, Object>();
-                map.forEach((k, v) -> normalized.put(String.valueOf(k), normalize(v)));
-                yield normalized;
-            }
-            case List<?> list -> list.stream().map(Amqp1Message::normalize).toList();
-            default -> String.valueOf(value);
-        };
+        return AmqpValues.normalize(body);
     }
 }
