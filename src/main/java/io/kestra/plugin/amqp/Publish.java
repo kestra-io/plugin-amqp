@@ -1,7 +1,16 @@
 package io.kestra.plugin.amqp;
 
 import java.io.IOException;
-import java.sql.Date;
+import java.math.BigInteger;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
@@ -12,6 +21,7 @@ import io.kestra.core.exceptions.IllegalVariableEvaluationException;
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Metric;
 import io.kestra.core.models.annotations.Plugin;
+import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.executions.metrics.Counter;
 import io.kestra.core.models.property.Data;
 import io.kestra.core.models.property.Property;
@@ -25,8 +35,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+
 import static io.kestra.core.utils.Rethrow.throwFunction;
-import io.kestra.core.models.annotations.PluginProperty;
 
 @SuperBuilder
 @ToString
@@ -158,7 +168,7 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
             new AMQP.BasicProperties(
                 message.getContentType(),
                 message.getContentEncoding(),
-                message.getHeaders(),
+                amqpHeaders(message.getHeaders()),
                 message.getDeliveryMode(),
                 message.getPriority(),
                 message.getCorrelationId(),
@@ -173,6 +183,29 @@ public class Publish extends AbstractAmqpConnection implements RunnableTask<Publ
             ),
             runContext.render(serdeType).as(SerdeType.class).orElseThrow().serialize(message.getData())
         );
+    }
+
+    static Map<String, Object> amqpHeaders(Map<?, ?> headers) {
+        if (headers == null) {
+            return null;
+        }
+        var converted = new LinkedHashMap<String, Object>();
+        headers.forEach((key, value) -> converted.put(String.valueOf(key), amqpValue(value)));
+        return converted;
+    }
+
+    private static Object amqpValue(Object value) {
+        return switch (value) {
+            case null -> null;
+            case Instant instant -> Date.from(instant);
+            case ZonedDateTime dateTime -> Date.from(dateTime.toInstant());
+            case OffsetDateTime dateTime -> Date.from(dateTime.toInstant());
+            case LocalDateTime dateTime -> Date.from(dateTime.toInstant(ZoneOffset.UTC));
+            case BigInteger number -> number.longValueExact();
+            case Map<?, ?> map -> amqpHeaders(map);
+            case List<?> list -> list.stream().map(Publish::amqpValue).toList();
+            default -> value;
+        };
     }
 
     @Builder
