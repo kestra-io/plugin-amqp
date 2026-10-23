@@ -1,6 +1,5 @@
 package io.kestra.plugin.amqp;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.Proxy;
 import java.time.Duration;
 import java.time.Instant;
@@ -24,8 +23,9 @@ class ConsumeThreadAbortTest {
     void abortShouldReturnPromptlyEvenIfTheUnderlyingConnectionAbortBlocks() throws Exception {
         var blockingAbortConnection = (Connection) Proxy.newProxyInstance(
             Connection.class.getClassLoader(),
-            new Class[]{Connection.class},
-            (proxy, method, args) -> {
+            new Class[] { Connection.class },
+            (proxy, method, args) ->
+            {
                 if ("abort".equals(method.getName())) {
                     Thread.sleep(3000);
                 }
@@ -38,7 +38,10 @@ class ConsumeThreadAbortTest {
             null,
             null,
             false,
-            message -> {},
+            Duration.ofMinutes(1),
+            message ->
+            {
+            },
             () -> true
         );
 

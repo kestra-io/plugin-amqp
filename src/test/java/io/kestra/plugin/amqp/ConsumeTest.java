@@ -6,6 +6,8 @@ import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Test;
 
@@ -19,6 +21,88 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
 class ConsumeTest extends AbstractTest {
+
+    @Test
+    void shouldConsumeMessagesArrivingAfterOneMinute() throws Exception {
+        var queueName = "duration-" + IdUtils.create();
+        var context = runContextFactory.of();
+        var consume = Consume.builder()
+            .id("consumeDuration-" + IdUtils.create())
+            .type(Consume.class.getName())
+            .host(Property.ofValue("localhost"))
+            .port(Property.ofValue("5672"))
+            .username(Property.ofValue("guest"))
+            .password(Property.ofValue("guest"))
+            .virtualHost(Property.ofValue("/my_vhost"))
+            .queue(Property.ofValue(queueName))
+            .consumerTag(Property.ofValue("duration-" + IdUtils.create()))
+            .maxRecords(Property.ofValue(1))
+            .maxDuration(Property.ofValue(Duration.ofSeconds(75)))
+            .build();
+
+        try (
+            var connection = consume.connectionFactory(context).newConnection();
+            var channel = connection.createChannel();
+            var publisher = Executors.newSingleThreadScheduledExecutor()
+        ) {
+            channel.queueDeclare(queueName, false, false, true, null);
+            var published = publisher.schedule(() ->
+            {
+                channel.basicPublish("", queueName, null, "late message".getBytes());
+                return null;
+            }, 65, TimeUnit.SECONDS);
+
+            try {
+                var output = consume.run(context);
+
+                assertThat(output.getCount(), equalTo(1));
+                published.get(10, TimeUnit.SECONDS);
+                try (
+                    var input = context.storage().getFile(output.getUri());
+                    var reader = new BufferedReader(new InputStreamReader(input), FileSerde.BUFFER_SIZE)
+                ) {
+                    var messages = FileSerde.readAll(reader, Message.class).collectList().block();
+                    assertThat(messages, hasSize(1));
+                    assertThat(messages.getFirst().getData(), is("late message"));
+                }
+            } finally {
+                published.cancel(true);
+                publisher.shutdownNow();
+                channel.queueDelete(queueName);
+            }
+        }
+    }
+
+    @Test
+    void shouldReturnFromEmptyQueueWithoutMaxDuration() throws Exception {
+        var queueName = "empty-no-duration-" + IdUtils.create();
+        var context = runContextFactory.of();
+        var consume = Consume.builder()
+            .id("consumeEmpty-" + IdUtils.create())
+            .type(Consume.class.getName())
+            .host(Property.ofValue("localhost"))
+            .port(Property.ofValue("5672"))
+            .username(Property.ofValue("guest"))
+            .password(Property.ofValue("guest"))
+            .virtualHost(Property.ofValue("/my_vhost"))
+            .queue(Property.ofValue(queueName))
+            .consumerTag(Property.ofValue("empty-" + IdUtils.create()))
+            .maxRecords(Property.ofValue(1))
+            .build();
+
+        try (var connection = consume.connectionFactory(context).newConnection(); var channel = connection.createChannel()) {
+            channel.queueDeclare(queueName, false, false, true, null);
+            try {
+                var startedAt = Instant.now();
+                var output = consume.run(context);
+
+                assertThat(output.getCount(), equalTo(0));
+                assertThat(Duration.between(startedAt, Instant.now()).toSeconds(), allOf(greaterThanOrEqualTo(60L), lessThan(75L)));
+            } finally {
+                channel.queueDelete(queueName);
+            }
+        }
+    }
 
     @Test
     void shouldConsumePublishedMessages() throws Exception {
