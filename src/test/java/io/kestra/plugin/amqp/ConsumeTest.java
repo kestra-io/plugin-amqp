@@ -64,6 +64,9 @@ class ConsumeTest extends AbstractTest {
 
             var payloads = messages.stream().map(Message::getData).toList();
             assertThat(payloads, hasItems("value-1", "value-2"));
+            var firstMessage = messages.stream().filter(message -> "value-1".equals(message.getData())).findFirst().orElseThrow();
+            assertThat(firstMessage.getHeaders(), hasEntry("testHeader", "KestraTest"));
+            assertThat(firstMessage.getHeaders(), hasEntry("retry", 3));
         }
     }
 

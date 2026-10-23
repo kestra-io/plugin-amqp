@@ -21,6 +21,7 @@ import io.kestra.core.runners.RunContextFactory;
 import io.kestra.core.serializers.JacksonMapper;
 import io.kestra.core.utils.TestsUtils;
 import io.kestra.plugin.amqp.models.Message;
+
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
 
@@ -91,7 +92,7 @@ abstract class AbstractTest {
                 Arrays.asList(
                     JacksonMapper.toMap(
                         Message.builder()
-                            .headers(ImmutableMap.of("testHeader", "KestraTest"))
+                            .headers(ImmutableMap.of("testHeader", "KestraTest", "retry", 3))
                             .timestamp(Instant.now())
                             .data("value-1")
                             .build()

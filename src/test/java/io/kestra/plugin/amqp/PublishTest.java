@@ -3,12 +3,17 @@ package io.kestra.plugin.amqp;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
+
+import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.ConnectionFactory;
 
 import io.kestra.core.models.property.Property;
 import io.kestra.core.serializers.FileSerde;
@@ -20,6 +25,72 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
 class PublishTest extends AbstractTest {
+
+    @Test
+    void shouldRepublishConsumedTimestampHeaders() throws Exception {
+        var factory = new ConnectionFactory();
+        factory.setVirtualHost("/my_vhost");
+        var source = "amqpReplay.source." + IdUtils.create();
+        var expiring = "amqpReplay.expiring." + IdUtils.create();
+        var destination = "amqpReplay.destination." + IdUtils.create();
+        var timestamp = Date.from(Instant.parse("2026-10-22T07:34:34Z"));
+
+        try (var connection = factory.newConnection(); var channel = connection.createChannel()) {
+            channel.queueDeclare(source, false, false, false, null);
+            channel.queueDeclare(destination, false, false, false, null);
+            channel.queueDeclare(
+                expiring, false, false, false, Map.of(
+                    "x-message-ttl", 100,
+                    "x-dead-letter-exchange", "",
+                    "x-dead-letter-routing-key", source
+                )
+            );
+            try {
+                channel.basicPublish(
+                    "", expiring, new AMQP.BasicProperties.Builder()
+                        .headers(Map.of("history", List.of(Map.of("time", timestamp, "count", 1L))))
+                        .build(),
+                    "replay".getBytes(StandardCharsets.UTF_8)
+                );
+
+                var consumed = Consume.builder()
+                    .host(Property.ofValue("localhost"))
+                    .port(Property.ofValue("5672"))
+                    .username(Property.ofValue("guest"))
+                    .password(Property.ofValue("guest"))
+                    .virtualHost(Property.ofValue("/my_vhost"))
+                    .queue(Property.ofValue(source))
+                    .maxRecords(Property.ofValue(1))
+                    .maxDuration(Property.ofValue(Duration.ofSeconds(5)))
+                    .build().run(runContextFactory.of());
+
+                var published = Publish.builder()
+                    .host(Property.ofValue("localhost"))
+                    .port(Property.ofValue("5672"))
+                    .username(Property.ofValue("guest"))
+                    .password(Property.ofValue("guest"))
+                    .virtualHost(Property.ofValue("/my_vhost"))
+                    .exchange(Property.ofValue(""))
+                    .routingKey(Property.ofValue(destination))
+                    .from(consumed.getUri().toString())
+                    .build().run(runContextFactory.of());
+
+                assertThat(published.getMessagesCount(), equalTo(1));
+                var replayed = channel.basicGet(destination, true);
+                assertThat(replayed, is(notNullValue()));
+                assertThat(new String(replayed.getBody(), StandardCharsets.UTF_8), equalTo("replay"));
+                var deaths = (List<?>) replayed.getProps().getHeaders().get("history");
+                var death = (Map<?, ?>) deaths.getFirst();
+                assertThat(death.get("time"), equalTo(timestamp));
+                assertThat(death.get("count"), instanceOf(Number.class));
+                assertThat(((Number) death.get("count")).longValue(), equalTo(1L));
+            } finally {
+                channel.queueDelete(source);
+                channel.queueDelete(destination);
+                channel.queueDelete(expiring);
+            }
+        }
+    }
 
     @Test
     void shouldPublishMessagesToIsolatedQueue() throws Exception {
