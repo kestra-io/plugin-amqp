@@ -60,7 +60,7 @@ dependencies {
     compileOnly'org.slf4j:slf4j-api'
 
     // amqp
-    api group: 'com.rabbitmq', name: 'amqp-client', version: '5.36.0'
+    api group: 'com.rabbitmq', name: 'amqp-client', version: '5.37.0'
     api group: 'org.apache.qpid', name: 'protonj2-client', version: '1.4.0'
 }
 
