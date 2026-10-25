@@ -24,10 +24,10 @@ class ConsumeTest extends AbstractTest {
 
     @Test
     void shouldConsumeMessagesArrivingAfterOneMinute() throws Exception {
-        var queueName = "duration-" + IdUtils.create();
+        var queueName = "duration-%s".formatted(IdUtils.create());
         var context = runContextFactory.of();
         var consume = Consume.builder()
-            .id("consumeDuration-" + IdUtils.create())
+            .id("consumeDuration-%s".formatted(IdUtils.create()))
             .type(Consume.class.getName())
             .host(Property.ofValue("localhost"))
             .port(Property.ofValue("5672"))
@@ -35,7 +35,7 @@ class ConsumeTest extends AbstractTest {
             .password(Property.ofValue("guest"))
             .virtualHost(Property.ofValue("/my_vhost"))
             .queue(Property.ofValue(queueName))
-            .consumerTag(Property.ofValue("duration-" + IdUtils.create()))
+            .consumerTag(Property.ofValue("duration-%s".formatted(IdUtils.create())))
             .maxRecords(Property.ofValue(1))
             .maxDuration(Property.ofValue(Duration.ofSeconds(75)))
             .build();
@@ -57,11 +57,8 @@ class ConsumeTest extends AbstractTest {
 
                 assertThat(output.getCount(), equalTo(1));
                 published.get(10, TimeUnit.SECONDS);
-                try (
-                    var input = context.storage().getFile(output.getUri());
-                    var reader = new BufferedReader(new InputStreamReader(input), FileSerde.BUFFER_SIZE)
-                ) {
-                    var messages = FileSerde.readAll(reader, Message.class).collectList().block();
+                try (var input = context.storage().getFile(output.getUri())) {
+                    var messages = FileSerde.readAll(input, Message.class).collectList().block();
                     assertThat(messages, hasSize(1));
                     assertThat(messages.getFirst().getData(), is("late message"));
                 }
@@ -75,10 +72,10 @@ class ConsumeTest extends AbstractTest {
 
     @Test
     void shouldReturnFromEmptyQueueWithoutMaxDuration() throws Exception {
-        var queueName = "empty-no-duration-" + IdUtils.create();
+        var queueName = "empty-no-duration-%s".formatted(IdUtils.create());
         var context = runContextFactory.of();
         var consume = Consume.builder()
-            .id("consumeEmpty-" + IdUtils.create())
+            .id("consumeEmpty-%s".formatted(IdUtils.create()))
             .type(Consume.class.getName())
             .host(Property.ofValue("localhost"))
             .port(Property.ofValue("5672"))
@@ -86,7 +83,7 @@ class ConsumeTest extends AbstractTest {
             .password(Property.ofValue("guest"))
             .virtualHost(Property.ofValue("/my_vhost"))
             .queue(Property.ofValue(queueName))
-            .consumerTag(Property.ofValue("empty-" + IdUtils.create()))
+            .consumerTag(Property.ofValue("empty-%s".formatted(IdUtils.create())))
             .maxRecords(Property.ofValue(1))
             .build();
 
