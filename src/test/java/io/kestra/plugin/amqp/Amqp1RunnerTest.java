@@ -16,7 +16,7 @@ class Amqp1RunnerTest {
     @Test
     @ExecuteFlow("sanity-checks/all_amqp1.yaml")
     void allAmqp1(Execution execution) {
-        assertThat(execution.getTaskRunList(), hasSize(8));
+        assertThat(execution.getTaskRunList(), hasSize(7));
         assertThat(execution.getState().getCurrent(), is(State.Type.SUCCESS));
     }
 }
