@@ -17,16 +17,12 @@ tasks:
 
   - id: docker_start
     type: io.kestra.plugin.docker.Run
-    containerImage: rabbitmq:3-management-alpine
+    containerImage: rabbitmq:3.13.7-management-alpine
     portBindings:
       - "{{ outputs.init.values.port }}:5672"
     env:
       RABBITMQ_DEFAULT_VHOST: "{{ vars.virtual_host }}"
     wait: false
-
-  - id: wait_rabbitmq
-    type: io.kestra.plugin.core.flow.Sleep
-    duration: PT15S
 
   - id: declare_exchange
     type: io.kestra.plugin.amqp.DeclareExchange
@@ -36,6 +32,11 @@ tasks:
     password: "{{ vars.password }}"
     virtualHost: "{{ vars.virtual_host }}"
     name: "{{ vars.exchange }}"
+    retry:
+      type: constant
+      interval: PT2S
+      maxDuration: PT2M
+      warningOnRetry: false
 
   - id: create_queue
     type: io.kestra.plugin.amqp.CreateQueue

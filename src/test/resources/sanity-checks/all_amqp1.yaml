@@ -30,10 +30,6 @@ tasks:
       EXTRA_ARGS: "--java-options -Dbrokerconfig.addressSettings.#.defaultAddressRoutingType=ANYCAST"
     wait: false
 
-  - id: wait_artemis
-    type: io.kestra.plugin.core.flow.Sleep
-    duration: PT15S
-
   - id: publish
     type: io.kestra.plugin.amqp.Amqp1Publish
     host: "{{ vars.host }}"
@@ -50,6 +46,11 @@ tasks:
       - data:
           value: sanity-value-2
         durable: true
+    retry:
+      type: constant
+      interval: PT2S
+      maxDuration: PT2M
+      warningOnRetry: false
 
   - id: consume
     type: io.kestra.plugin.amqp.Amqp1Consume
