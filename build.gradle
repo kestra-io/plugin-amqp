@@ -60,8 +60,8 @@ dependencies {
     compileOnly'org.slf4j:slf4j-api'
 
     // amqp
-    api group: 'com.rabbitmq', name: 'amqp-client', version: '5.37.0'
-    api group: 'org.apache.qpid', name: 'protonj2-client', version: '1.4.0'
+    api group: 'com.rabbitmq', name: 'amqp-client', version: '5.37.1'
+    api group: 'org.apache.qpid', name: 'protonj2-client', version: '1.5.0'
 }
 
 
@@ -103,7 +103,7 @@ dependencies {
     testImplementation "org.hamcrest:hamcrest-library"
 
     // sanity checks
-    testImplementation "io.kestra.plugin:plugin-docker:1.8.4"
+    testImplementation "io.kestra.plugin:plugin-docker:1.8.6"
 }
 
 /**********************************************************************************************************************\
